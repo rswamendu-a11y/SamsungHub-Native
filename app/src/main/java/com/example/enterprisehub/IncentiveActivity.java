@@ -50,20 +50,22 @@ public class IncentiveActivity extends AppCompatActivity {
             }
 
             double percentage = (achieved / target) * 100;
-            // Placeholder logic:
-            // < 80% = 0 incentive
-            // 80-100% = 5% of achieved
-            // > 100% = 10% of achieved
 
-            double incentive = 0;
+            // Formula: Incentive = (Achieved Amount / Target Amount) * 100 (which is just percentage)
+            // But usually incentive is a monetary value? The prompt says:
+            // "Formula: Incentive = (Achieved Amount / Target Amount) * 100."
+            // "Display: Show the result as a percentage (e.g., '85% Achieved')."
+            // So the "Incentive" here refers to the "Incentive Percentage" or "Achievement Rate".
+
+            String result = String.format("Achievement Rate: %.1f%%", percentage);
+
+            // Add a little motivating message
             if (percentage >= 100) {
-                incentive = achieved * 0.10;
-            } else if (percentage >= 80) {
-                incentive = achieved * 0.05;
+                result += "\nExcellent Work! Target Achieved.";
+            } else {
+                result += "\nKeep Pushing!";
             }
 
-            // Use Rupee Symbol
-            String result = String.format("Achievement: %.1f%%\nIncentive: \u20B9%.2f", percentage, incentive);
             tvResult.setText(result);
 
         } catch (NumberFormatException e) {
