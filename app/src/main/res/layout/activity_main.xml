@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -16,36 +17,108 @@
         android:textColor="@color/white"
         android:background="@color/samsung_blue"
         android:padding="12dp"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="24dp"
+        android:layout_gravity="center_horizontal"/>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Welcome Back."
-        android:textColor="@color/dark_text"
+        android:text="Samsung Hub"
+        android:textColor="@color/samsung_blue"
         android:textSize="32sp"
         android:textStyle="bold"
-        android:layout_marginBottom="8dp"/>
+        android:layout_marginBottom="8dp"
+        android:gravity="center_horizontal"/>
 
-    <Button
-        android:id="@+id/btn_tracker"
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Daily Sales Tracker"
-        android:backgroundTint="@color/samsung_blue"
-        android:textColor="@color/white"
-        android:padding="16dp"
-        android:layout_marginBottom="16dp"/>
+        android:text="Select an Action"
+        android:textColor="@color/dark_text"
+        android:textSize="16sp"
+        android:layout_marginBottom="32dp"
+        android:gravity="center_horizontal"/>
 
-    <Button
-        android:id="@+id/btn_incentive"
+    <GridLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Incentive Calculator"
-        android:backgroundTint="@color/samsung_blue"
-        android:textColor="@color/white"
-        android:padding="16dp"
-        android:layout_marginBottom="16dp"/>
+        android:columnCount="2"
+        android:rowCount="1"
+        android:alignmentMode="alignMargins"
+        android:columnOrderPreserved="false"
+        android:useDefaultMargins="true">
+
+        <!-- Card 1: Sales Tracker -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_tracker"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_margin="8dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/white">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:gravity="center">
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@android:drawable/ic_menu_edit"
+                    app:tint="@color/samsung_blue"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Daily Tracker"
+                    android:textColor="@color/dark_text"
+                    android:textStyle="bold"
+                    android:gravity="center"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Card 2: Incentive Calculator -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_incentive"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_margin="8dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/white">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:gravity="center">
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@android:drawable/ic_menu_my_calendar"
+                    app:tint="@color/samsung_blue"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Incentives"
+                    android:textColor="@color/dark_text"
+                    android:textStyle="bold"
+                    android:gravity="center"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+    </GridLayout>
 
     <Button
         android:id="@+id/btn_exit"
@@ -55,6 +128,7 @@
         android:backgroundTint="#ef4444"
         android:textColor="@color/white"
         android:textStyle="bold"
-        android:padding="16dp"/>
+        android:padding="16dp"
+        android:layout_marginTop="32dp"/>
 
 </LinearLayout>

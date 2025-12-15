@@ -1,8 +1,7 @@
 package com.example.enterprisehub;
 
-import android.Manifest;
+import android.app.DatePickerDialog;
 import android.content.ContentValues;
-import android.content.pm.PackageManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -17,7 +16,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -39,6 +40,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -51,7 +53,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class SalesTrackerActivity extends AppCompatActivity {
 
-    private EditText etBrand, etModel, etVariant, etQuantity, etPrice;
+    private EditText etBrand, etModel, etVariant, etQuantity, etPrice, etDate;
     private TextView tvDashboardSummary;
     private SalesDatabaseHelper dbHelper;
     private RecyclerView recyclerView;
@@ -59,6 +61,7 @@ public class SalesTrackerActivity extends AppCompatActivity {
     private List<SaleItem> saleList;
     private PieChart pieChart;
     private BarChart barChart;
+    private long selectedTimestamp = System.currentTimeMillis();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,11 +79,13 @@ public class SalesTrackerActivity extends AppCompatActivity {
         etVariant = findViewById(R.id.et_variant);
         etQuantity = findViewById(R.id.et_quantity);
         etPrice = findViewById(R.id.et_price);
+        etDate = findViewById(R.id.et_date);
         tvDashboardSummary = findViewById(R.id.tv_dashboard_summary);
 
         Button btnAddSale = findViewById(R.id.btn_add_sale);
         Button btnExportPdf = findViewById(R.id.btn_export_pdf);
         Button btnExportExcel = findViewById(R.id.btn_export_excel);
+        ImageView btnDatePicker = findViewById(R.id.btn_date_picker);
 
         recyclerView = findViewById(R.id.recycler_view_sales);
         pieChart = findViewById(R.id.pieChart);
@@ -89,10 +94,36 @@ public class SalesTrackerActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         loadSales();
+        updateDateLabel();
 
         btnAddSale.setOnClickListener(v -> addSale());
         btnExportPdf.setOnClickListener(v -> showExportDialog(true));
         btnExportExcel.setOnClickListener(v -> showExportDialog(false));
+
+        View.OnClickListener datePickerListener = v -> showDatePicker();
+        etDate.setOnClickListener(datePickerListener);
+        btnDatePicker.setOnClickListener(datePickerListener);
+    }
+
+    private void showDatePicker() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(selectedTimestamp);
+        int year = calendar.get(Calendar.YEAR);
+        int month = calendar.get(Calendar.MONTH);
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+
+        DatePickerDialog datePickerDialog = new DatePickerDialog(this, (view, year1, month1, dayOfMonth) -> {
+            Calendar newDate = Calendar.getInstance();
+            newDate.set(year1, month1, dayOfMonth);
+            selectedTimestamp = newDate.getTimeInMillis();
+            updateDateLabel();
+        }, year, month, day);
+        datePickerDialog.show();
+    }
+
+    private void updateDateLabel() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        etDate.setText(sdf.format(new Date(selectedTimestamp)));
     }
 
     private void showExportDialog(boolean isPdf) {
@@ -154,11 +185,10 @@ public class SalesTrackerActivity extends AppCompatActivity {
         try {
             int qty = Integer.parseInt(qtyStr);
             double price = Double.parseDouble(priceStr);
-            long timestamp = System.currentTimeMillis();
 
             String segment = calculateSegment(price);
 
-            SaleItem newItem = new SaleItem(0, brand, model, variant, qty, price, segment, timestamp);
+            SaleItem newItem = new SaleItem(0, brand, model, variant, qty, price, segment, selectedTimestamp);
             dbHelper.addSale(newItem);
 
             etBrand.setText("");
@@ -166,6 +196,10 @@ public class SalesTrackerActivity extends AppCompatActivity {
             etVariant.setText("");
             etQuantity.setText("");
             etPrice.setText("");
+
+            // Reset date to today
+            selectedTimestamp = System.currentTimeMillis();
+            updateDateLabel();
 
             loadSales();
             Toast.makeText(this, "Sale Added", Toast.LENGTH_SHORT).show();
@@ -198,12 +232,16 @@ public class SalesTrackerActivity extends AppCompatActivity {
                 entries.add(new PieEntry(entry.getValue(), entry.getKey()));
             }
 
-            PieDataSet dataSet = new PieDataSet(entries, "Brand Share");
-            dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
-            PieData pieData = new PieData(dataSet);
-            pieChart.setData(pieData);
-            pieChart.setDescription(null);
-            pieChart.invalidate();
+            if (!entries.isEmpty()) {
+                PieDataSet dataSet = new PieDataSet(entries, "Brand Share");
+                dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
+                PieData pieData = new PieData(dataSet);
+                pieChart.setData(pieData);
+                pieChart.setDescription(null);
+                pieChart.invalidate();
+            } else {
+                 pieChart.clear();
+            }
 
             // Update Bar Chart
             List<BarEntry> barEntries = new ArrayList<>();
@@ -215,19 +253,23 @@ public class SalesTrackerActivity extends AppCompatActivity {
                 index++;
             }
 
-            BarDataSet barDataSet = new BarDataSet(barEntries, "Volume by Brand");
-            barDataSet.setColors(ColorTemplate.MATERIAL_COLORS);
-            BarData barData = new BarData(barDataSet);
-            barChart.setData(barData);
-            barChart.setDescription(null);
+            if (!barEntries.isEmpty()) {
+                BarDataSet barDataSet = new BarDataSet(barEntries, "Volume by Brand");
+                barDataSet.setColors(ColorTemplate.MATERIAL_COLORS);
+                BarData barData = new BarData(barDataSet);
+                barChart.setData(barData);
+                barChart.setDescription(null);
 
-            XAxis xAxis = barChart.getXAxis();
-            xAxis.setValueFormatter(new IndexAxisValueFormatter(labels));
-            xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-            xAxis.setGranularity(1f);
-            xAxis.setGranularityEnabled(true);
+                XAxis xAxis = barChart.getXAxis();
+                xAxis.setValueFormatter(new IndexAxisValueFormatter(labels));
+                xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+                xAxis.setGranularity(1f);
+                xAxis.setGranularityEnabled(true);
 
-            barChart.invalidate();
+                barChart.invalidate();
+            } else {
+                barChart.clear();
+            }
 
             updateSummaryText();
         } catch (Exception e) {
@@ -265,7 +307,8 @@ public class SalesTrackerActivity extends AppCompatActivity {
             double lastMonthValue = 0;
             for (SaleItem item : lastMonthSales) lastMonthValue += (item.getPrice() * item.getQuantity());
 
-            String summary = String.format(Locale.getDefault(), "This Month: $%.2f | Last Month: $%.2f", thisMonthValue, lastMonthValue);
+            // Use Rupee Symbol
+            String summary = String.format(Locale.getDefault(), "This Month: \u20B9%.2f | Last Month: \u20B9%.2f", thisMonthValue, lastMonthValue);
             tvDashboardSummary.setText(summary);
         } catch (Exception e) {
              Log.e("SalesTracker", "Error updating summary: " + e.getMessage());
@@ -319,7 +362,7 @@ public class SalesTrackerActivity extends AppCompatActivity {
         paint.setFakeBoldText(false);
 
         for (String brand : brandVolume.keySet()) {
-            String summary = brand + ": Volume=" + brandVolume.get(brand) + ", Value=" + String.format("%.2f", brandValue.get(brand));
+            String summary = brand + ": Volume=" + brandVolume.get(brand) + ", Value=\u20B9" + String.format("%.2f", brandValue.get(brand));
             canvas.drawText(summary, 20, y, paint);
             y += 20;
         }
@@ -439,7 +482,8 @@ public class SalesTrackerActivity extends AppCompatActivity {
             SaleItem item = list.get(position);
             holder.tvName.setText(item.getItemName()); // Uses "Brand Model Variant"
             holder.tvQty.setText("Qty: " + item.getQuantity());
-            holder.tvPrice.setText(String.format("%.2f (%s)", item.getPrice(), item.getSegment()));
+            // Use Rupee Symbol
+            holder.tvPrice.setText(String.format("\u20B9%.2f (%s)", item.getPrice(), item.getSegment()));
 
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
             holder.tvDate.setText(sdf.format(new Date(item.getTimestamp())));

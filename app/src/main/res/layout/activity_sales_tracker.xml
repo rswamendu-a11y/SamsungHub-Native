@@ -52,6 +52,32 @@
                     android:textColor="@color/samsung_blue"
                     android:layout_marginBottom="8dp"/>
 
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
+
+                     <EditText
+                        android:id="@+id/et_date"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:focusable="false"
+                        android:clickable="true"
+                        android:hint="Select Date"
+                        android:textColor="@color/dark_text"/>
+
+                    <ImageView
+                         android:id="@+id/btn_date_picker"
+                         android:layout_width="32dp"
+                         android:layout_height="32dp"
+                         android:src="@android:drawable/ic_menu_my_calendar"
+                         app:tint="@color/samsung_blue"/>
+
+                </LinearLayout>
+
                 <EditText
                     android:id="@+id/et_brand"
                     android:layout_width="match_parent"
@@ -94,7 +120,7 @@
                         android:layout_weight="1"
                         android:inputType="numberDecimal"
                         android:textColor="@color/dark_text"
-                        android:hint="Price (Unit)" />
+                        android:hint="Price (₹)" />
                 </LinearLayout>
 
                 <Button

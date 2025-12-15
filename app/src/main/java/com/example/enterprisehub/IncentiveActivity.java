@@ -62,7 +62,8 @@ public class IncentiveActivity extends AppCompatActivity {
                 incentive = achieved * 0.05;
             }
 
-            String result = String.format("Achievement: %.1f%%\nIncentive: $%.2f", percentage, incentive);
+            // Use Rupee Symbol
+            String result = String.format("Achievement: %.1f%%\nIncentive: \u20B9%.2f", percentage, incentive);
             tvResult.setText(result);
 
         } catch (NumberFormatException e) {

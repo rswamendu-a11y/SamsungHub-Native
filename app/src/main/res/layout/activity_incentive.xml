@@ -33,7 +33,7 @@
                 android:id="@+id/et_target"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Target Amount ($)"
+                android:hint="Target Amount (₹)"
                 android:inputType="numberDecimal"
                 android:textColor="@color/dark_text"
                 android:layout_marginBottom="8dp"/>
@@ -42,7 +42,7 @@
                 android:id="@+id/et_achieved"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Achieved Amount ($)"
+                android:hint="Achieved Amount (₹)"
                 android:inputType="numberDecimal"
                 android:textColor="@color/dark_text"
                 android:layout_marginBottom="16dp"/>
