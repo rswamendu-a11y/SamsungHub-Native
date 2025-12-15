@@ -12,9 +12,13 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Iterator;
+import java.util.Locale;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -79,6 +83,8 @@ public class ImportActivity extends AppCompatActivity {
                 // Skip Header
                 if (rowIterator.hasNext()) rowIterator.next();
 
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+
                 while (rowIterator.hasNext()) {
                     Row row = rowIterator.next();
                     try {
@@ -100,12 +106,22 @@ public class ImportActivity extends AppCompatActivity {
                         int qty = (int) Double.parseDouble(getCellValue(row.getCell(4)));
                         double price = Double.parseDouble(getCellValue(row.getCell(5)));
 
-                        // Parse Date if present
                         long timestamp = System.currentTimeMillis();
-                        String dateStr = getCellValue(row.getCell(7));
-                        if (!dateStr.isEmpty()) {
-                             // Try parse
-                             // SimpleDateFormat logic here if needed
+                        Cell dateCell = row.getCell(7);
+                        if (dateCell != null) {
+                            if (dateCell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(dateCell)) {
+                                timestamp = dateCell.getDateCellValue().getTime();
+                            } else {
+                                String dateStr = getCellValue(dateCell);
+                                if (!dateStr.isEmpty()) {
+                                    try {
+                                        Date date = sdf.parse(dateStr);
+                                        if (date != null) timestamp = date.getTime();
+                                    } catch (Exception e) {
+                                        // Ignore parse error, use current time
+                                    }
+                                }
+                            }
                         }
 
                         if (!brand.isEmpty() && !model.isEmpty()) {

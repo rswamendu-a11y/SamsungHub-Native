@@ -1,6 +1,5 @@
 package com.example.enterprisehub;
 
-import android.app.DatePickerDialog;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.graphics.Canvas;
@@ -386,6 +385,9 @@ public class SalesTrackerActivity extends AppCompatActivity {
     }
 
     private void exportToExcel(List<SaleItem> dataToExport) {
+        // PATCH: Sort Ascending for Excel too
+        Collections.sort(dataToExport, Comparator.comparingLong(SaleItem::getTimestamp));
+
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("Sales");
 

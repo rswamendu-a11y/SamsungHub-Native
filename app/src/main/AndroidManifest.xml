@@ -22,6 +22,7 @@
         <activity android:name=".IncentiveActivity" />
         <activity android:name=".SettingsActivity" />
         <activity android:name=".ImportActivity" />
+        <activity android:name=".ProfileActivity" />
     </application>
 
 </manifest>

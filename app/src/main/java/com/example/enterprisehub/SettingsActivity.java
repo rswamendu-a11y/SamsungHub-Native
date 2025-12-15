@@ -18,11 +18,16 @@ public class SettingsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_settings);
 
         Button btnImport = findViewById(R.id.btn_import);
-        Button btnPinAction = findViewById(R.id.btn_pin_action); // Needs XML update
+        Button btnPinAction = findViewById(R.id.btn_pin_action);
+        Button btnProfile = findViewById(R.id.btn_profile);
         Switch switchDarkMode = findViewById(R.id.switch_dark_mode);
 
         btnImport.setOnClickListener(v -> {
             startActivity(new Intent(SettingsActivity.this, ImportActivity.class));
+        });
+
+        btnProfile.setOnClickListener(v -> {
+            startActivity(new Intent(SettingsActivity.this, ProfileActivity.class));
         });
 
         // PIN Logic
@@ -39,15 +44,6 @@ public class SettingsActivity extends AppCompatActivity {
         } else {
             btnPinAction.setText("Set PIN");
             btnPinAction.setOnClickListener(v -> {
-                // Launch LoginActivity which handles Setup if no PIN
-                // But LoginActivity forces login. We need a mode or clear intent.
-                // Simplified: Just clearing PIN allows next launch to prompt setup.
-                // If we want to set it now, we can launch LoginActivity.
-                // However, LoginActivity logic is: if no PIN -> Setup.
-
-                // Hack/Fix: Clear 'last_active' to force login screen logic?
-                // Or simply tell user: "Restart App to Set PIN".
-                // Better: Launch LoginActivity.
                 Intent intent = new Intent(SettingsActivity.this, LoginActivity.class);
                 startActivity(intent);
             });
