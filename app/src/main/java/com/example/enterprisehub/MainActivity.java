@@ -13,12 +13,21 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         Button btnTracker = findViewById(R.id.btn_tracker);
+        Button btnIncentive = findViewById(R.id.btn_incentive);
         Button btnExit = findViewById(R.id.btn_exit);
 
         btnTracker.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 android.content.Intent intent = new android.content.Intent(MainActivity.this, SalesTrackerActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        btnIncentive.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                android.content.Intent intent = new android.content.Intent(MainActivity.this, IncentiveActivity.class);
                 startActivity(intent);
             }
         });

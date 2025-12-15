@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#020617"
+    android:background="@color/light_grey"
     android:padding="24dp"
     android:gravity="center_vertical">
 
@@ -13,8 +13,8 @@
         android:text="S"
         android:textSize="24sp"
         android:textStyle="bold"
-        android:textColor="#FFFFFF"
-        android:background="#0ea5e9"
+        android:textColor="@color/white"
+        android:background="@color/samsung_blue"
         android:padding="12dp"
         android:layout_marginBottom="16dp" />
 
@@ -22,7 +22,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Welcome Back."
-        android:textColor="#FFFFFF"
+        android:textColor="@color/dark_text"
         android:textSize="32sp"
         android:textStyle="bold"
         android:layout_marginBottom="8dp"/>
@@ -32,8 +32,18 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Daily Sales Tracker"
-        android:backgroundTint="#1e293b"
-        android:textColor="#38bdf8"
+        android:backgroundTint="@color/samsung_blue"
+        android:textColor="@color/white"
+        android:padding="16dp"
+        android:layout_marginBottom="16dp"/>
+
+    <Button
+        android:id="@+id/btn_incentive"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Incentive Calculator"
+        android:backgroundTint="@color/samsung_blue"
+        android:textColor="@color/white"
         android:padding="16dp"
         android:layout_marginBottom="16dp"/>
 
@@ -43,7 +53,7 @@
         android:layout_height="wrap_content"
         android:text="EXIT APP"
         android:backgroundTint="#ef4444"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/white"
         android:textStyle="bold"
         android:padding="16dp"/>
 

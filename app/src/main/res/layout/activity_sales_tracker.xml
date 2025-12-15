@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/light_grey">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -15,6 +17,7 @@
             android:text="Sales Tracker"
             android:textSize="24sp"
             android:textStyle="bold"
+            android:textColor="@color/samsung_blue"
             android:layout_marginBottom="8dp" />
 
         <TextView
@@ -23,95 +26,139 @@
             android:layout_height="wrap_content"
             android:text="Loading Summary..."
             android:textSize="14sp"
-            android:textColor="@android:color/darker_gray"
+            android:textColor="@color/dark_text"
             android:layout_marginBottom="16dp" />
 
-        <!-- Input Fields -->
-        <LinearLayout
+        <!-- Input Fields Card -->
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <EditText
-                android:id="@+id/et_brand"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Brand (e.g., Samsung)" />
-
-            <EditText
-                android:id="@+id/et_model"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Model (e.g., Galaxy S23)" />
-
-            <EditText
-                android:id="@+id/et_variant"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Variant (e.g., 256GB)" />
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/white"
+            android:layout_marginBottom="16dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="New Entry"
+                    android:textStyle="bold"
+                    android:textColor="@color/samsung_blue"
+                    android:layout_marginBottom="8dp"/>
 
                 <EditText
-                    android:id="@+id/et_quantity"
-                    android:layout_width="0dp"
+                    android:id="@+id/et_brand"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:inputType="number"
-                    android:hint="Qty" />
+                    android:textColor="@color/dark_text"
+                    android:hint="Brand (e.g., Samsung)" />
 
                 <EditText
-                    android:id="@+id/et_price"
-                    android:layout_width="0dp"
+                    android:id="@+id/et_model"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:inputType="numberDecimal"
-                    android:hint="Price (Unit)" />
+                    android:textColor="@color/dark_text"
+                    android:hint="Model (e.g., Galaxy S23)" />
+
+                <EditText
+                    android:id="@+id/et_variant"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/dark_text"
+                    android:hint="Variant (e.g., 256GB)" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <EditText
+                        android:id="@+id/et_quantity"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:inputType="number"
+                        android:textColor="@color/dark_text"
+                        android:hint="Qty" />
+
+                    <EditText
+                        android:id="@+id/et_price"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:inputType="numberDecimal"
+                        android:textColor="@color/dark_text"
+                        android:hint="Price (Unit)" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btn_add_sale"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Add Sale"
+                    android:backgroundTint="@color/samsung_blue"
+                    android:textColor="@color/white"
+                    android:layout_marginTop="8dp"/>
             </LinearLayout>
-        </LinearLayout>
+        </androidx.cardview.widget.CardView>
 
-        <Button
-            android:id="@+id/btn_add_sale"
+        <!-- Charts Card -->
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Add Sale" />
-
-        <!-- Charts -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginTop="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/white"
             android:layout_marginBottom="16dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Brand Share (Volume)"
-                android:textStyle="bold"
-                android:layout_marginBottom="8dp"/>
-
-            <com.github.mikephil.charting.charts.PieChart
-                android:id="@+id/pieChart"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="200dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Volume by Brand"
-                android:textStyle="bold"
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="8dp"/>
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <com.github.mikephil.charting.charts.BarChart
-                android:id="@+id/barChart"
-                android:layout_width="match_parent"
-                android:layout_height="200dp" />
-        </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Analytics"
+                    android:textStyle="bold"
+                    android:textColor="@color/samsung_blue"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Brand Share (Volume)"
+                    android:textStyle="bold"
+                    android:textColor="@color/dark_text"
+                    android:layout_marginBottom="8dp"/>
+
+                <com.github.mikephil.charting.charts.PieChart
+                    android:id="@+id/pieChart"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Volume by Brand"
+                    android:textStyle="bold"
+                    android:textColor="@color/dark_text"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="8dp"/>
+
+                <com.github.mikephil.charting.charts.BarChart
+                    android:id="@+id/barChart"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
 
         <!-- Export Buttons -->
         <LinearLayout
@@ -126,7 +173,9 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="4dp"
-                android:text="PDF Report" />
+                android:text="PDF Report"
+                android:backgroundTint="@color/samsung_blue"
+                android:textColor="@color/white"/>
 
             <Button
                 android:id="@+id/btn_export_excel"
@@ -134,7 +183,9 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="4dp"
-                android:text="Excel Export" />
+                android:text="Excel Export"
+                android:backgroundTint="@color/samsung_blue"
+                android:textColor="@color/white"/>
         </LinearLayout>
 
         <!-- List -->

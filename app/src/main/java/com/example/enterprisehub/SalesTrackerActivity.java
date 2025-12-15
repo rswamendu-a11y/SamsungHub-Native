@@ -1,12 +1,18 @@
 package com.example.enterprisehub;
 
 import android.Manifest;
+import android.content.ContentValues;
 import android.content.pm.PackageManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.pdf.PdfDocument;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,9 +35,8 @@ import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 import com.github.mikephil.charting.utils.ColorTemplate;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -123,10 +128,15 @@ public class SalesTrackerActivity extends AppCompatActivity {
     }
 
     private void loadSales() {
-        saleList = dbHelper.getAllSales();
-        adapter = new SaleAdapter(saleList);
-        recyclerView.setAdapter(adapter);
-        updateChart();
+        try {
+            saleList = dbHelper.getAllSales();
+            adapter = new SaleAdapter(saleList);
+            recyclerView.setAdapter(adapter);
+            updateChart();
+        } catch (Exception e) {
+            Log.e("SalesTracker", "Error loading sales: " + e.getMessage());
+            Toast.makeText(this, "Error loading data", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void addSale() {
@@ -162,6 +172,9 @@ public class SalesTrackerActivity extends AppCompatActivity {
 
         } catch (NumberFormatException e) {
             Toast.makeText(this, "Invalid number format", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Log.e("SalesTracker", "Error adding sale: " + e.getMessage());
+            Toast.makeText(this, "Error adding sale", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -174,81 +187,89 @@ public class SalesTrackerActivity extends AppCompatActivity {
     }
 
     private void updateChart() {
-        Map<String, Integer> brandCounts = new HashMap<>();
-        for (SaleItem item : saleList) {
-            brandCounts.put(item.getBrand(), brandCounts.getOrDefault(item.getBrand(), 0) + item.getQuantity());
+        try {
+            Map<String, Integer> brandCounts = new HashMap<>();
+            for (SaleItem item : saleList) {
+                brandCounts.put(item.getBrand(), brandCounts.getOrDefault(item.getBrand(), 0) + item.getQuantity());
+            }
+
+            List<PieEntry> entries = new ArrayList<>();
+            for (Map.Entry<String, Integer> entry : brandCounts.entrySet()) {
+                entries.add(new PieEntry(entry.getValue(), entry.getKey()));
+            }
+
+            PieDataSet dataSet = new PieDataSet(entries, "Brand Share");
+            dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
+            PieData pieData = new PieData(dataSet);
+            pieChart.setData(pieData);
+            pieChart.setDescription(null);
+            pieChart.invalidate();
+
+            // Update Bar Chart
+            List<BarEntry> barEntries = new ArrayList<>();
+            List<String> labels = new ArrayList<>();
+            int index = 0;
+            for (Map.Entry<String, Integer> entry : brandCounts.entrySet()) {
+                barEntries.add(new BarEntry(index, entry.getValue()));
+                labels.add(entry.getKey());
+                index++;
+            }
+
+            BarDataSet barDataSet = new BarDataSet(barEntries, "Volume by Brand");
+            barDataSet.setColors(ColorTemplate.MATERIAL_COLORS);
+            BarData barData = new BarData(barDataSet);
+            barChart.setData(barData);
+            barChart.setDescription(null);
+
+            XAxis xAxis = barChart.getXAxis();
+            xAxis.setValueFormatter(new IndexAxisValueFormatter(labels));
+            xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+            xAxis.setGranularity(1f);
+            xAxis.setGranularityEnabled(true);
+
+            barChart.invalidate();
+
+            updateSummaryText();
+        } catch (Exception e) {
+            Log.e("SalesTracker", "Error updating charts: " + e.getMessage());
         }
-
-        List<PieEntry> entries = new ArrayList<>();
-        for (Map.Entry<String, Integer> entry : brandCounts.entrySet()) {
-            entries.add(new PieEntry(entry.getValue(), entry.getKey()));
-        }
-
-        PieDataSet dataSet = new PieDataSet(entries, "Brand Share");
-        dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
-        PieData pieData = new PieData(dataSet);
-        pieChart.setData(pieData);
-        pieChart.setDescription(null);
-        pieChart.invalidate();
-
-        // Update Bar Chart
-        List<BarEntry> barEntries = new ArrayList<>();
-        List<String> labels = new ArrayList<>();
-        int index = 0;
-        for (Map.Entry<String, Integer> entry : brandCounts.entrySet()) {
-            barEntries.add(new BarEntry(index, entry.getValue()));
-            labels.add(entry.getKey());
-            index++;
-        }
-
-        BarDataSet barDataSet = new BarDataSet(barEntries, "Volume by Brand");
-        barDataSet.setColors(ColorTemplate.MATERIAL_COLORS);
-        BarData barData = new BarData(barDataSet);
-        barChart.setData(barData);
-        barChart.setDescription(null);
-
-        XAxis xAxis = barChart.getXAxis();
-        xAxis.setValueFormatter(new IndexAxisValueFormatter(labels));
-        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        xAxis.setGranularity(1f);
-        xAxis.setGranularityEnabled(true);
-
-        barChart.invalidate();
-
-        updateSummaryText();
     }
 
     private void updateSummaryText() {
-        // Calculate This Month vs Last Month
-        java.util.Calendar cal = java.util.Calendar.getInstance();
+        try {
+            // Calculate This Month vs Last Month
+            java.util.Calendar cal = java.util.Calendar.getInstance();
 
-        // This Month
-        cal.set(java.util.Calendar.DAY_OF_MONTH, 1);
-        cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
-        cal.set(java.util.Calendar.MINUTE, 0);
-        cal.set(java.util.Calendar.SECOND, 0);
-        cal.set(java.util.Calendar.MILLISECOND, 0);
-        long thisMonthStart = cal.getTimeInMillis();
-        long now = System.currentTimeMillis();
+            // This Month
+            cal.set(java.util.Calendar.DAY_OF_MONTH, 1);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            cal.set(java.util.Calendar.MINUTE, 0);
+            cal.set(java.util.Calendar.SECOND, 0);
+            cal.set(java.util.Calendar.MILLISECOND, 0);
+            long thisMonthStart = cal.getTimeInMillis();
+            long now = System.currentTimeMillis();
 
-        // Last Month
-        cal.add(java.util.Calendar.MONTH, -1);
-        long lastMonthStart = cal.getTimeInMillis();
-        cal.add(java.util.Calendar.MONTH, 1); // Reset to start of this month
-        cal.add(java.util.Calendar.MILLISECOND, -1);
-        long lastMonthEnd = cal.getTimeInMillis(); // End of last month
+            // Last Month
+            cal.add(java.util.Calendar.MONTH, -1);
+            long lastMonthStart = cal.getTimeInMillis();
+            cal.add(java.util.Calendar.MONTH, 1); // Reset to start of this month
+            cal.add(java.util.Calendar.MILLISECOND, -1);
+            long lastMonthEnd = cal.getTimeInMillis(); // End of last month
 
-        List<SaleItem> thisMonthSales = dbHelper.getSalesByDateRange(thisMonthStart, now);
-        List<SaleItem> lastMonthSales = dbHelper.getSalesByDateRange(lastMonthStart, lastMonthEnd);
+            List<SaleItem> thisMonthSales = dbHelper.getSalesByDateRange(thisMonthStart, now);
+            List<SaleItem> lastMonthSales = dbHelper.getSalesByDateRange(lastMonthStart, lastMonthEnd);
 
-        double thisMonthValue = 0;
-        for (SaleItem item : thisMonthSales) thisMonthValue += (item.getPrice() * item.getQuantity());
+            double thisMonthValue = 0;
+            for (SaleItem item : thisMonthSales) thisMonthValue += (item.getPrice() * item.getQuantity());
 
-        double lastMonthValue = 0;
-        for (SaleItem item : lastMonthSales) lastMonthValue += (item.getPrice() * item.getQuantity());
+            double lastMonthValue = 0;
+            for (SaleItem item : lastMonthSales) lastMonthValue += (item.getPrice() * item.getQuantity());
 
-        String summary = String.format(Locale.getDefault(), "This Month: $%.2f | Last Month: $%.2f", thisMonthValue, lastMonthValue);
-        tvDashboardSummary.setText(summary);
+            String summary = String.format(Locale.getDefault(), "This Month: $%.2f | Last Month: $%.2f", thisMonthValue, lastMonthValue);
+            tvDashboardSummary.setText(summary);
+        } catch (Exception e) {
+             Log.e("SalesTracker", "Error updating summary: " + e.getMessage());
+        }
     }
 
     private void exportToPdf(List<SaleItem> dataToExport) {
@@ -305,13 +326,32 @@ public class SalesTrackerActivity extends AppCompatActivity {
 
         document.finishPage(page);
 
-        File file = new File(getExternalFilesDir(null), "sales_report_v2.pdf");
+        // Robust Save using MediaStore
         try {
-            document.writeTo(new FileOutputStream(file));
-            Toast.makeText(this, "PDF saved to " + file.getAbsolutePath(), Toast.LENGTH_LONG).show();
+            OutputStream fos;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.MediaColumns.DISPLAY_NAME, "sales_report_" + System.currentTimeMillis() + ".pdf");
+                values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+
+                Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                if (uri == null) throw new IOException("Failed to create new MediaStore record.");
+                fos = getContentResolver().openOutputStream(uri);
+            } else {
+                String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString();
+                java.io.File file = new java.io.File(path, "sales_report_" + System.currentTimeMillis() + ".pdf");
+                fos = new java.io.FileOutputStream(file);
+            }
+
+            if (fos != null) {
+                document.writeTo(fos);
+                fos.close();
+                Toast.makeText(this, "PDF Exported Successfully", Toast.LENGTH_LONG).show();
+            }
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Error saving PDF", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Error saving PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
         document.close();
     }
@@ -345,16 +385,38 @@ public class SalesTrackerActivity extends AppCompatActivity {
             row.createCell(7).setCellValue(sdf.format(new Date(item.getTimestamp())));
         }
 
-        File file = new File(getExternalFilesDir(null), "sales_report_v2.xlsx");
+        // Robust Save using MediaStore
         try {
-            FileOutputStream fos = new FileOutputStream(file);
-            workbook.write(fos);
-            fos.close();
-            workbook.close();
-            Toast.makeText(this, "Excel saved to " + file.getAbsolutePath(), Toast.LENGTH_LONG).show();
+            OutputStream fos;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.MediaColumns.DISPLAY_NAME, "sales_report_" + System.currentTimeMillis() + ".xlsx");
+                values.put(MediaStore.MediaColumns.MIME_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+
+                Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                if (uri == null) throw new IOException("Failed to create new MediaStore record.");
+                fos = getContentResolver().openOutputStream(uri);
+            } else {
+                String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString();
+                java.io.File file = new java.io.File(path, "sales_report_" + System.currentTimeMillis() + ".xlsx");
+                fos = new java.io.FileOutputStream(file);
+            }
+
+            if (fos != null) {
+                workbook.write(fos);
+                fos.close();
+                Toast.makeText(this, "Excel Exported Successfully", Toast.LENGTH_LONG).show();
+            }
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Error saving Excel", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Error saving Excel: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+
+        try {
+            workbook.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
