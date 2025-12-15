@@ -11,6 +11,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class LoginActivity extends AppCompatActivity {
@@ -20,7 +21,7 @@ public class LoginActivity extends AppCompatActivity {
     public static final String KEY_LAST_ACTIVE = "last_active";
 
     private EditText etPin;
-    private TextView tvStatus;
+    private TextView tvStatus, tvForgotPin;
     private boolean isSettingUp = false;
 
     @Override
@@ -30,6 +31,7 @@ public class LoginActivity extends AppCompatActivity {
 
         etPin = findViewById(R.id.et_pin);
         tvStatus = findViewById(R.id.tv_status);
+        tvForgotPin = findViewById(R.id.tv_forgot_pin);
         Button btnConfirm = findViewById(R.id.btn_confirm);
 
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
@@ -38,9 +40,11 @@ public class LoginActivity extends AppCompatActivity {
         if (savedPin == null) {
             isSettingUp = true;
             tvStatus.setText("Create New PIN (4 Digits)");
+            tvForgotPin.setVisibility(View.GONE);
         } else {
             isSettingUp = false;
             tvStatus.setText("Enter PIN");
+            tvForgotPin.setVisibility(View.VISIBLE);
         }
 
         btnConfirm.setOnClickListener(v -> {
@@ -62,6 +66,14 @@ public class LoginActivity extends AppCompatActivity {
                     Toast.makeText(this, "Incorrect PIN", Toast.LENGTH_SHORT).show();
                 }
             }
+        });
+
+        tvForgotPin.setOnClickListener(v -> {
+            new AlertDialog.Builder(this)
+                .setTitle("Reset PIN")
+                .setMessage("To reset your PIN, please clear the App Data in your Phone Settings.")
+                .setPositiveButton("OK", null)
+                .show();
         });
     }
 

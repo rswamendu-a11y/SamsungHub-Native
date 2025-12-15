@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/light_grey">
+    android:background="?android:attr/windowBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -34,7 +34,7 @@
                 android:format24Hour="HH:mm:ss"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:textColor="@color/dark_text"/>
+                android:textColor="?android:attr/textColorPrimary"/>
         </LinearLayout>
 
         <TextView
@@ -43,7 +43,7 @@
             android:layout_height="wrap_content"
             android:text="Loading Summary..."
             android:textSize="14sp"
-            android:textColor="@color/dark_text"
+            android:textColor="?android:attr/textColorPrimary"
             android:layout_marginBottom="16dp" />
 
         <!-- Input Fields Card -->
@@ -84,7 +84,7 @@
                         android:focusable="false"
                         android:clickable="true"
                         android:hint="Select Date"
-                        android:textColor="@color/dark_text"/>
+                        android:textColor="?android:attr/textColorPrimary"/>
 
                     <ImageView
                          android:id="@+id/btn_date_picker"
@@ -105,14 +105,14 @@
                     android:id="@+id/et_model"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/dark_text"
+                    android:textColor="?android:attr/textColorPrimary"
                     android:hint="Model (e.g., Galaxy S23)" />
 
                 <EditText
                     android:id="@+id/et_variant"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/dark_text"
+                    android:textColor="?android:attr/textColorPrimary"
                     android:hint="Variant (e.g., 256GB)" />
 
                 <LinearLayout
@@ -126,7 +126,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:inputType="number"
-                        android:textColor="@color/dark_text"
+                        android:textColor="?android:attr/textColorPrimary"
                         android:hint="Qty" />
 
                     <EditText
@@ -135,7 +135,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:inputType="numberDecimal"
-                        android:textColor="@color/dark_text"
+                        android:textColor="?android:attr/textColorPrimary"
                         android:hint="Price (₹)" />
                 </LinearLayout>
 
@@ -176,9 +176,9 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Brand Share (Volume)"
+                    android:text="Brand Share (Value)"
                     android:textStyle="bold"
-                    android:textColor="@color/dark_text"
+                    android:textColor="?android:attr/textColorPrimary"
                     android:layout_marginBottom="8dp"/>
 
                 <com.github.mikephil.charting.charts.PieChart
@@ -191,7 +191,7 @@
                     android:layout_height="wrap_content"
                     android:text="Volume by Brand"
                     android:textStyle="bold"
-                    android:textColor="@color/dark_text"
+                    android:textColor="?android:attr/textColorPrimary"
                     android:layout_marginTop="16dp"
                     android:layout_marginBottom="8dp"/>
 

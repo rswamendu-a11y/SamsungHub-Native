@@ -98,7 +98,8 @@ public class PdfExport {
             grandTotalVal += (item.getQuantity() * item.getPrice());
         }
 
-        Collections.sort(dates, Collections.reverseOrder());
+        // PATCH: ASCENDING Order
+        Collections.sort(dates);
 
         // 2. Draw Header
         int dateColWidth = 60;
@@ -147,7 +148,7 @@ public class PdfExport {
 
             y += 20;
 
-            if (y > 550) { // Pagination
+            if (y > 500) { // Pagination
                 document.finishPage(page);
                 page = document.startPage(pageInfo);
                 canvas = page.getCanvas();
@@ -177,8 +178,57 @@ public class PdfExport {
         canvas.drawText(grandText, currentX, y, paint);
 
         y += 30;
-        paint.setTextSize(12);
-        canvas.drawText("Summary: Total Vol: " + (int)grandTotalVol + " | Total Value: \u20B9" + String.format("%.2f", grandTotalVal), x, y, paint);
+
+        // PATCH: PART B - DETAILED LIST TABLE
+        y += 20;
+
+        if (y > 500) {
+            document.finishPage(page);
+            page = document.startPage(pageInfo);
+            canvas = page.getCanvas();
+            y = 40;
+        }
+
+        paint.setTextSize(14);
+        paint.setTypeface(Typeface.DEFAULT_BOLD);
+        canvas.drawText("Part B: Detailed List", x, y, paint);
+        y += 20;
+        paint.setTextSize(9);
+        paint.setTypeface(Typeface.DEFAULT);
+
+        // Headers: Date | Brand | Model | Variant | Price
+        canvas.drawText("Date", x, y, paint);
+        canvas.drawText("Brand", x + 80, y, paint);
+        canvas.drawText("Model", x + 160, y, paint);
+        canvas.drawText("Variant", x + 260, y, paint);
+        canvas.drawText("Price", x + 360, y, paint);
+        y += 10;
+        canvas.drawLine(x, y, x + 400, y, paint);
+        y += 15;
+
+        // Iterate Data again (Assuming already sorted or we sort by timestamp)
+        // Note: The input list 'dataToExport' is typically sorted by Timestamp DESC from DB.
+        // Let's reverse it to match ASC requirement if needed, or just iterate.
+        // User asked "Ensure dates are sorted ASCENDING" for the Matrix.
+        // Let's assume list order for detailed view is fine as is (DESC) or we can flip it.
+        // To be safe, let's just print as is.
+
+        for (SaleItem item : dataToExport) {
+            String d = sdf.format(new Date(item.getTimestamp()));
+            canvas.drawText(d, x, y, paint);
+            canvas.drawText(item.getBrand(), x + 80, y, paint);
+            canvas.drawText(item.getModel(), x + 160, y, paint);
+            canvas.drawText(item.getVariant(), x + 260, y, paint);
+            canvas.drawText(String.format(Locale.US, "%.2f", item.getPrice()), x + 360, y, paint);
+            y += 15;
+
+             if (y > 550) {
+                document.finishPage(page);
+                page = document.startPage(pageInfo);
+                canvas = page.getCanvas();
+                y = 40;
+            }
+        }
 
         document.finishPage(page);
         savePdfToMediaStore(context, document);
