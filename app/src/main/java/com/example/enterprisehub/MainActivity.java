@@ -18,7 +18,8 @@ public class MainActivity extends AppCompatActivity {
         btnTracker.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(MainActivity.this, "Tracker: Ask Jules to build this next!", Toast.LENGTH_SHORT).show();
+                android.content.Intent intent = new android.content.Intent(MainActivity.this, SalesTrackerActivity.class);
+                startActivity(intent);
             }
         });
 
