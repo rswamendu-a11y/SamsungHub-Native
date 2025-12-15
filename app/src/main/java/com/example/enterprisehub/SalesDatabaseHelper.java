@@ -117,4 +117,25 @@ public class SalesDatabaseHelper extends SQLiteOpenHelper {
         db.close();
         return saleList;
     }
+
+    public void updateSale(SaleItem sale) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_BRAND, sale.getBrand());
+        values.put(COLUMN_MODEL, sale.getModel());
+        values.put(COLUMN_VARIANT, sale.getVariant());
+        values.put(COLUMN_QUANTITY, sale.getQuantity());
+        values.put(COLUMN_PRICE, sale.getPrice());
+        values.put(COLUMN_SEGMENT, sale.getSegment());
+        values.put(COLUMN_TIMESTAMP, sale.getTimestamp());
+
+        db.update(TABLE_SALES, values, COLUMN_ID + " = ?", new String[]{String.valueOf(sale.getId())});
+        db.close();
+    }
+
+    public void deleteSale(int id) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete(TABLE_SALES, COLUMN_ID + " = ?", new String[]{String.valueOf(id)});
+        db.close();
+    }
 }

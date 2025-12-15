@@ -452,6 +452,69 @@ public class SalesTrackerActivity extends AppCompatActivity {
         }
     }
 
+    private void showEditDeleteDialog(SaleItem item) {
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_edit_sale, null);
+
+        EditText etEditModel = view.findViewById(R.id.et_edit_model);
+        EditText etEditVariant = view.findViewById(R.id.et_edit_variant);
+        EditText etEditQty = view.findViewById(R.id.et_edit_qty);
+        EditText etEditPrice = view.findViewById(R.id.et_edit_price);
+        Spinner spEditBrand = view.findViewById(R.id.sp_edit_brand);
+
+        // Pre-fill data
+        etEditModel.setText(item.getModel());
+        etEditVariant.setText(item.getVariant());
+        etEditQty.setText(String.valueOf(item.getQuantity()));
+        etEditPrice.setText(String.valueOf(item.getPrice()));
+
+        // Populate Spinner
+        String[] brands = {"Samsung", "Apple", "Realme", "Xiaomi", "Oppo", "Vivo", "Motorola", "Others"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, brands);
+        spEditBrand.setAdapter(adapter);
+
+        for (int i=0; i<brands.length; i++) {
+            if (brands[i].equals(item.getBrand())) {
+                spEditBrand.setSelection(i);
+                break;
+            }
+        }
+
+        builder.setView(view)
+               .setTitle("Edit Sale")
+               .setPositiveButton("Update", (dialog, which) -> {
+                   try {
+                       String brand = spEditBrand.getSelectedItem().toString();
+                       String model = etEditModel.getText().toString().trim();
+                       String variant = etEditVariant.getText().toString().trim();
+                       int qty = Integer.parseInt(etEditQty.getText().toString().trim());
+                       double price = Double.parseDouble(etEditPrice.getText().toString().trim());
+                       String segment = calculateSegment(price);
+
+                       SaleItem updatedItem = new SaleItem(item.getId(), brand, model, variant, qty, price, segment, item.getTimestamp());
+                       dbHelper.updateSale(updatedItem);
+                       loadSales();
+                       Toast.makeText(this, "Sale Updated", Toast.LENGTH_SHORT).show();
+                   } catch (Exception e) {
+                       Toast.makeText(this, "Invalid Input", Toast.LENGTH_SHORT).show();
+                   }
+               })
+               .setNegativeButton("Delete", (dialog, which) -> {
+                   new androidx.appcompat.app.AlertDialog.Builder(this)
+                       .setTitle("Confirm Delete")
+                       .setMessage("Are you sure you want to delete this sale?")
+                       .setPositiveButton("Yes", (d, w) -> {
+                           dbHelper.deleteSale(item.getId());
+                           loadSales();
+                           Toast.makeText(this, "Sale Deleted", Toast.LENGTH_SHORT).show();
+                       })
+                       .setNegativeButton("No", null)
+                       .show();
+               })
+               .setNeutralButton("Cancel", null)
+               .show();
+    }
+
     private class SaleAdapter extends RecyclerView.Adapter<SaleAdapter.SaleViewHolder> {
         private List<SaleItem> list;
 
@@ -476,6 +539,8 @@ public class SalesTrackerActivity extends AppCompatActivity {
 
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
             holder.tvDate.setText(sdf.format(new Date(item.getTimestamp())));
+
+            holder.itemView.setOnClickListener(v -> showEditDeleteDialog(item));
         }
 
         @Override

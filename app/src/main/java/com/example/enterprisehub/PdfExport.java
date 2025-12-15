@@ -2,6 +2,7 @@ package com.example.enterprisehub;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -76,9 +77,9 @@ public class PdfExport {
         }
 
         // 2. Define Columns
-        // Fixed: Date(50), Variant(40)
-        // Dynamic: Per Brand (Qty 20, Val 40)
-        // Fixed End: Total Qty(30), Total Val(50), Logs(150), Summary(100)
+        // Fixed: Date(50), Outlet Info(50)
+        // Dynamic: Per Brand (Qty 25, Val 45)
+        // Fixed End: Total Qty(30), Total Val(50), Logs(200), Summary(150)
 
         int xStart = 20;
         int yStart = 40;
@@ -86,7 +87,7 @@ public class PdfExport {
 
         List<ColumnInfo> columns = new ArrayList<>();
         columns.add(new ColumnInfo("Date", 50));
-        columns.add(new ColumnInfo("Variant", 30)); // Placeholder as per screenshot
+        columns.add(new ColumnInfo("Outlet Info", 50));
 
         for (String brand : uniqueBrands) {
             columns.add(new ColumnInfo(brand + "\nQty", 25));
@@ -107,10 +108,27 @@ public class PdfExport {
         y += headerHeight;
         textPaint.setTypeface(Typeface.DEFAULT);
 
+        // Get Profile Info
+        SharedPreferences prefs = context.getSharedPreferences("EnterpriseHubPrefs", Context.MODE_PRIVATE);
+        String ownerName = prefs.getString(ProfileActivity.KEY_OWNER, "");
+        String outletName = prefs.getString(ProfileActivity.KEY_OUTLET, "Samsung Hub");
+        String profileInfo = (ownerName.isEmpty() ? "" : ownerName + " - ") + outletName;
+
         // 4. Draw Data Rows
         for (Map.Entry<String, List<SaleItem>> entry : groupedData.entrySet()) {
             String date = entry.getKey();
             List<SaleItem> items = entry.getValue();
+
+            // Format Month Year from date string (yyyy-MM-dd)
+            String monthYear = "";
+            try {
+                Date d = sdf.parse(date);
+                SimpleDateFormat myFormat = new SimpleDateFormat("MMM yyyy", Locale.getDefault());
+                monthYear = myFormat.format(d);
+            } catch (Exception e) {
+                monthYear = date;
+            }
+            String outletColumnText = profileInfo + "\n" + monthYear;
 
             // Calculate Row Data
             Map<String, Integer> brandQty = new HashMap<>();
@@ -150,7 +168,7 @@ public class PdfExport {
             // Build Row Values
             List<String> rowValues = new ArrayList<>();
             rowValues.add(date);
-            rowValues.add("0"); // Variant placeholder
+            rowValues.add(outletColumnText);
 
             for (String brand : uniqueBrands) {
                 rowValues.add(String.valueOf(brandQty.getOrDefault(brand, 0)));

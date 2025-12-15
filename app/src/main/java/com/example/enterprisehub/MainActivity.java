@@ -22,7 +22,7 @@ public class MainActivity extends AppCompatActivity {
         tvOutletName = findViewById(R.id.tv_outlet_name);
 
         CardView cardTracker = findViewById(R.id.card_tracker);
-        CardView cardIncentive = findViewById(R.id.card_incentive);
+        CardView cardHistory = findViewById(R.id.card_history);
         CardView cardSettings = findViewById(R.id.card_settings);
         Button btnExit = findViewById(R.id.btn_exit);
 
@@ -31,8 +31,8 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        cardIncentive.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, IncentiveActivity.class);
+        cardHistory.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, SalesTrackerActivity.class);
             startActivity(intent);
         });
 
