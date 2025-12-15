@@ -4,51 +4,46 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="?android:attr/windowBackground"
-    android:padding="24dp"
-    android:gravity="center_vertical">
+    android:background="#F5F7FA">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="S"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="@color/white"
+        android:orientation="vertical"
         android:background="@color/samsung_blue"
-        android:padding="12dp"
-        android:layout_marginBottom="24dp"
-        android:layout_gravity="center_horizontal"/>
+        android:padding="24dp"
+        android:elevation="4dp">
 
-    <TextView
-        android:id="@+id/tv_welcome"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Welcome Back."
-        android:textColor="?android:attr/textColorPrimary"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="4dp"
-        android:gravity="center_horizontal"/>
+        <TextView
+            android:id="@+id/tv_welcome"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Welcome Back"
+            android:textColor="@color/white"
+            android:textSize="22sp"
+            android:textStyle="bold" />
 
-    <TextView
-        android:id="@+id/tv_outlet_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Samsung Hub"
-        android:textColor="@color/samsung_blue"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="32dp"
-        android:gravity="center_horizontal"/>
+        <TextView
+            android:id="@+id/tv_outlet_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Samsung Hub"
+            android:textColor="#E0E0E0"
+            android:textSize="16sp"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
 
+    <!-- Grid Menu -->
     <GridLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:columnCount="2"
-        android:rowCount="2"
+        android:rowCount="3"
         android:alignmentMode="alignMargins"
         android:columnOrderPreserved="false"
+        android:padding="16dp"
         android:useDefaultMargins="true">
 
         <!-- Card 1: Sales Tracker -->
@@ -57,99 +52,141 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
             android:layout_margin="8dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/white">
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:orientation="vertical"
-                android:padding="16dp"
-                android:gravity="center">
+                android:gravity="center"
+                android:padding="16dp">
 
                 <ImageView
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:src="@android:drawable/ic_menu_edit"
                     app:tint="@color/samsung_blue"
-                    android:layout_marginBottom="8dp"/>
+                    android:layout_marginBottom="12dp"/>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Daily Tracker"
                     android:textColor="@color/dark_text"
-                    android:textStyle="bold"
-                    android:gravity="center"/>
+                    android:textSize="16sp"
+                    android:textStyle="bold"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- Card 2: Incentive Calculator -->
+        <!-- Card 2: Sales History (NEW) -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_history"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_margin="8dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/white">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="16dp">
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@android:drawable/ic_menu_recent_history"
+                    app:tint="@color/samsung_blue"
+                    android:layout_marginBottom="12dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="History"
+                    android:textColor="@color/dark_text"
+                    android:textSize="16sp"
+                    android:textStyle="bold"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Card 3: Incentives -->
         <androidx.cardview.widget.CardView
             android:id="@+id/card_incentive"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
             android:layout_margin="8dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/white">
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:orientation="vertical"
-                android:padding="16dp"
-                android:gravity="center">
+                android:gravity="center"
+                android:padding="16dp">
 
                 <ImageView
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:src="@android:drawable/ic_menu_my_calendar"
                     app:tint="@color/samsung_blue"
-                    android:layout_marginBottom="8dp"/>
+                    android:layout_marginBottom="12dp"/>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Incentives"
                     android:textColor="@color/dark_text"
-                    android:textStyle="bold"
-                    android:gravity="center"/>
+                    android:textSize="16sp"
+                    android:textStyle="bold"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- Card 3: Settings -->
+        <!-- Card 4: Settings -->
         <androidx.cardview.widget.CardView
             android:id="@+id/card_settings"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
             android:layout_margin="8dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/white">
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:orientation="vertical"
-                android:padding="16dp"
-                android:gravity="center">
+                android:gravity="center"
+                android:padding="16dp">
 
                 <ImageView
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:src="@android:drawable/ic_menu_preferences"
                     app:tint="@color/samsung_blue"
-                    android:layout_marginBottom="8dp"/>
+                    android:layout_marginBottom="12dp"/>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Settings"
                     android:textColor="@color/dark_text"
-                    android:textStyle="bold"
-                    android:gravity="center"/>
+                    android:textSize="16sp"
+                    android:textStyle="bold"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -163,7 +200,6 @@
         android:backgroundTint="#ef4444"
         android:textColor="@color/white"
         android:textStyle="bold"
-        android:padding="16dp"
-        android:layout_marginTop="32dp"/>
+        android:layout_margin="24dp"/>
 
 </LinearLayout>

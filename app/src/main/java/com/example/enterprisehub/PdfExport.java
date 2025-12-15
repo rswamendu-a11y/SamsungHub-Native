@@ -2,7 +2,6 @@ package com.example.enterprisehub;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -12,6 +11,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.text.Layout;
+import android.text.StaticLayout;
+import android.text.TextPaint;
 import android.widget.Toast;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -23,104 +25,220 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 public class PdfExport {
 
     public static void generateMatrixPdf(Context context, List<SaleItem> dataToExport) {
         PdfDocument document = new PdfDocument();
-        // A4 Portrait for Ledger
-        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(595, 842, 1).create();
+        // A4 Landscape: 842 x 595
+        int pageWidth = 842;
+        int pageHeight = 595;
+        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
         PdfDocument.Page page = document.startPage(pageInfo);
         Canvas canvas = page.getCanvas();
-        Paint paint = new Paint();
-        paint.setColor(Color.BLACK);
-        paint.setTextSize(10);
 
-        int y = 40;
-        int x = 20;
+        TextPaint textPaint = new TextPaint();
+        textPaint.setColor(Color.BLACK);
+        textPaint.setTextSize(8);
+        textPaint.setTypeface(Typeface.DEFAULT);
 
-        // Get Profile Info
-        SharedPreferences prefs = context.getSharedPreferences("EnterpriseHubPrefs", Context.MODE_PRIVATE);
-        String owner = prefs.getString(ProfileActivity.KEY_OWNER, "Owner");
-        String outlet = prefs.getString(ProfileActivity.KEY_OUTLET, "Samsung Hub");
+        Paint linePaint = new Paint();
+        linePaint.setColor(Color.BLACK);
+        linePaint.setStyle(Paint.Style.STROKE);
+        linePaint.setStrokeWidth(0.5f);
 
-        // Title Header
-        paint.setTextSize(18);
-        paint.setTypeface(Typeface.DEFAULT_BOLD);
-        canvas.drawText("Sales Transaction Report", x, y, paint);
-        y += 25;
+        // 1. Prepare Data
+        // Get Unique Brands
+        Set<String> brandSet = new HashSet<>();
+        for (SaleItem item : dataToExport) {
+            brandSet.add(item.getBrand());
+        }
+        List<String> uniqueBrands = new ArrayList<>(brandSet);
+        Collections.sort(uniqueBrands);
 
-        paint.setTextSize(12);
-        canvas.drawText("Outlet: " + outlet, x, y, paint);
-        y += 20;
-        canvas.drawText("Owner: " + owner, x, y, paint);
-        y += 30;
-
-        paint.setTextSize(10);
-        paint.setTypeface(Typeface.DEFAULT);
-
-        // Sort by Date Ascending
-        Collections.sort(dataToExport, Comparator.comparingLong(SaleItem::getTimestamp));
-
-        // Draw Table Header
-        // Cols: Date | Brand | Model | Variant | Qty | Price | Segment
-        // Widths: 60 | 60 | 80 | 60 | 30 | 50 | 50
-        int[] colX = {20, 80, 140, 220, 280, 310, 360};
-
-        paint.setTypeface(Typeface.DEFAULT_BOLD);
-        canvas.drawText("Date", colX[0], y, paint);
-        canvas.drawText("Brand", colX[1], y, paint);
-        canvas.drawText("Model", colX[2], y, paint);
-        canvas.drawText("Variant", colX[3], y, paint);
-        canvas.drawText("Qty", colX[4], y, paint);
-        canvas.drawText("Price (\u20B9)", colX[5], y, paint); // Rupee
-        canvas.drawText("Segment", colX[6], y, paint);
-
-        y += 10;
-        canvas.drawLine(x, y, 550, y, paint);
-        y += 15;
-        paint.setTypeface(Typeface.DEFAULT);
-
+        // Group by Date
+        Map<String, List<SaleItem>> groupedData = new TreeMap<>(); // Date -> Items
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-        int totalQty = 0;
-        double totalValue = 0;
 
         for (SaleItem item : dataToExport) {
-            canvas.drawText(sdf.format(new Date(item.getTimestamp())), colX[0], y, paint);
-            canvas.drawText(item.getBrand(), colX[1], y, paint);
-            canvas.drawText(item.getModel(), colX[2], y, paint);
-            canvas.drawText(item.getVariant(), colX[3], y, paint);
-            canvas.drawText(String.valueOf(item.getQuantity()), colX[4], y, paint);
-            canvas.drawText(String.format(Locale.US, "%.0f", item.getPrice()), colX[5], y, paint);
-            canvas.drawText(item.getSegment(), colX[6], y, paint);
+            String dateKey = sdf.format(new Date(item.getTimestamp()));
+            if (!groupedData.containsKey(dateKey)) {
+                groupedData.put(dateKey, new ArrayList<>());
+            }
+            groupedData.get(dateKey).add(item);
+        }
 
-            totalQty += item.getQuantity();
-            totalValue += (item.getPrice() * item.getQuantity());
+        // 2. Define Columns
+        // Fixed: Date(50), Variant(40)
+        // Dynamic: Per Brand (Qty 20, Val 40)
+        // Fixed End: Total Qty(30), Total Val(50), Logs(150), Summary(100)
 
-            y += 20;
+        int xStart = 20;
+        int yStart = 40;
+        int currentX = xStart;
 
-            if (y > 800) {
+        List<ColumnInfo> columns = new ArrayList<>();
+        columns.add(new ColumnInfo("Date", 50));
+        columns.add(new ColumnInfo("Variant", 30)); // Placeholder as per screenshot
+
+        for (String brand : uniqueBrands) {
+            columns.add(new ColumnInfo(brand + "\nQty", 25));
+            columns.add(new ColumnInfo(brand + "\nVal", 45));
+        }
+
+        columns.add(new ColumnInfo("Total\nQty", 30));
+        columns.add(new ColumnInfo("Total\nVal", 50));
+        columns.add(new ColumnInfo("Logs", 200));
+        columns.add(new ColumnInfo("Brand Summary", 150));
+
+        // 3. Draw Header
+        int headerHeight = 30;
+        int y = yStart;
+
+        textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+        drawRow(canvas, columns, xStart, y, headerHeight, null, textPaint, linePaint, true);
+        y += headerHeight;
+        textPaint.setTypeface(Typeface.DEFAULT);
+
+        // 4. Draw Data Rows
+        for (Map.Entry<String, List<SaleItem>> entry : groupedData.entrySet()) {
+            String date = entry.getKey();
+            List<SaleItem> items = entry.getValue();
+
+            // Calculate Row Data
+            Map<String, Integer> brandQty = new HashMap<>();
+            Map<String, Double> brandVal = new HashMap<>();
+            int dayTotalQty = 0;
+            double dayTotalVal = 0;
+            StringBuilder logsBuilder = new StringBuilder();
+
+            // Sort items by brand/model for logs
+            Collections.sort(items, Comparator.comparing(SaleItem::getBrand).thenComparing(SaleItem::getModel));
+
+            for (SaleItem item : items) {
+                brandQty.put(item.getBrand(), brandQty.getOrDefault(item.getBrand(), 0) + item.getQuantity());
+                brandVal.put(item.getBrand(), brandVal.getOrDefault(item.getBrand(), 0.0) + (item.getPrice() * item.getQuantity()));
+
+                dayTotalQty += item.getQuantity();
+                dayTotalVal += (item.getPrice() * item.getQuantity());
+
+                // Log Entry: "Samsung S23 (256GB) - 1u (Val: 75000)"
+                logsBuilder.append(item.getBrand()).append(" ").append(item.getModel())
+                           .append(" (").append(item.getVariant()).append(") - ")
+                           .append(item.getQuantity()).append("u (Val: ")
+                           .append((int)(item.getPrice() * item.getQuantity())).append(")\n");
+            }
+
+            // Brand Summary
+            StringBuilder summaryBuilder = new StringBuilder();
+            for (String brand : uniqueBrands) {
+                int qty = brandQty.getOrDefault(brand, 0);
+                double val = brandVal.getOrDefault(brand, 0.0);
+                if (qty > 0) {
+                    summaryBuilder.append(brand).append(": ").append(qty).append("u ('")
+                                  .append((int)val).append(")\n");
+                }
+            }
+
+            // Build Row Values
+            List<String> rowValues = new ArrayList<>();
+            rowValues.add(date);
+            rowValues.add("0"); // Variant placeholder
+
+            for (String brand : uniqueBrands) {
+                rowValues.add(String.valueOf(brandQty.getOrDefault(brand, 0)));
+                rowValues.add(String.valueOf(brandVal.getOrDefault(brand, 0.0).intValue()));
+            }
+
+            rowValues.add(String.valueOf(dayTotalQty));
+            rowValues.add(String.valueOf((int) dayTotalVal));
+            rowValues.add(logsBuilder.toString().trim());
+            rowValues.add(summaryBuilder.toString().trim());
+
+            // Determine Row Height based on Logs/Summary text
+            int measuredHeight = measureMaxRowHeight(columns, rowValues, textPaint);
+            int rowHeight = Math.max(20, measuredHeight + 10); // Min height 20 + padding
+
+            // Page Break Check
+            if (y + rowHeight > pageHeight - 40) {
                 document.finishPage(page);
                 page = document.startPage(pageInfo);
                 canvas = page.getCanvas();
                 y = 40;
-                // Skip header redraw for simplicity
+                // Redraw Header
+                textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+                drawRow(canvas, columns, xStart, y, headerHeight, null, textPaint, linePaint, true);
+                y += headerHeight;
+                textPaint.setTypeface(Typeface.DEFAULT);
             }
+
+            drawRow(canvas, columns, xStart, y, rowHeight, rowValues, textPaint, linePaint, false);
+            y += rowHeight;
         }
-
-        y += 10;
-        canvas.drawLine(x, y, 550, y, paint);
-        y += 20;
-
-        paint.setTypeface(Typeface.DEFAULT_BOLD);
-        canvas.drawText("Total Qty: " + totalQty, x, y, paint);
-        canvas.drawText("Total Value: \u20B9" + String.format(Locale.US, "%.2f", totalValue), x + 150, y, paint);
 
         document.finishPage(page);
         savePdfToMediaStore(context, document);
+    }
+
+    private static void drawRow(Canvas canvas, List<ColumnInfo> columns, int startX, int y, int height,
+                                List<String> data, TextPaint textPaint, Paint linePaint, boolean isHeader) {
+        int currentX = startX;
+        for (int i = 0; i < columns.size(); i++) {
+            ColumnInfo col = columns.get(i);
+            String text = isHeader ? col.name : data.get(i);
+
+            // Draw Box
+            canvas.drawRect(currentX, y, currentX + col.width, y + height, linePaint);
+
+            // Draw Text (Multiline support)
+            if (text != null && !text.isEmpty()) {
+                canvas.save();
+                canvas.translate(currentX + 2, y + 2); // Padding
+                StaticLayout layout = StaticLayout.Builder.obtain(text, 0, text.length(), textPaint, col.width - 4)
+                        .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                        .setLineSpacing(0, 1.0f)
+                        .setIncludePad(false)
+                        .build();
+                layout.draw(canvas);
+                canvas.restore();
+            }
+
+            currentX += col.width;
+        }
+    }
+
+    private static int measureMaxRowHeight(List<ColumnInfo> columns, List<String> data, TextPaint paint) {
+        int maxHeight = 0;
+        for (int i = 0; i < columns.size(); i++) {
+            String text = data.get(i);
+            if (text == null || text.isEmpty()) continue;
+
+            StaticLayout layout = StaticLayout.Builder.obtain(text, 0, text.length(), paint, columns.get(i).width - 4)
+                    .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                    .setLineSpacing(0, 1.0f)
+                    .setIncludePad(false)
+                    .build();
+            if (layout.getHeight() > maxHeight) {
+                maxHeight = layout.getHeight();
+            }
+        }
+        return maxHeight;
+    }
+
+    private static class ColumnInfo {
+        String name;
+        int width;
+        public ColumnInfo(String name, int width) {
+            this.name = name;
+            this.width = width;
+        }
     }
 
     private static void savePdfToMediaStore(Context context, PdfDocument document) {
@@ -128,7 +246,7 @@ public class PdfExport {
             OutputStream fos;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 ContentValues values = new ContentValues();
-                values.put(MediaStore.MediaColumns.DISPLAY_NAME, "Sales_Report_" + System.currentTimeMillis() + ".pdf");
+                values.put(MediaStore.MediaColumns.DISPLAY_NAME, "Matrix_Report_" + System.currentTimeMillis() + ".pdf");
                 values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
                 values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
 
@@ -137,14 +255,14 @@ public class PdfExport {
                 fos = context.getContentResolver().openOutputStream(uri);
             } else {
                 String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString();
-                File file = new File(path, "Sales_Report_" + System.currentTimeMillis() + ".pdf");
+                File file = new File(path, "Matrix_Report_" + System.currentTimeMillis() + ".pdf");
                 fos = new FileOutputStream(file);
             }
 
             if (fos != null) {
                 document.writeTo(fos);
                 fos.close();
-                Toast.makeText(context, "Report Exported to Downloads", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "Matrix PDF Exported", Toast.LENGTH_LONG).show();
             }
         } catch (IOException e) {
             e.printStackTrace();
