@@ -88,4 +88,33 @@ public class SalesDatabaseHelper extends SQLiteOpenHelper {
         db.close();
         return saleList;
     }
+
+    public List<SaleItem> getSalesByDateRange(long startTime, long endTime) {
+        List<SaleItem> saleList = new ArrayList<>();
+        String selectQuery = "SELECT * FROM " + TABLE_SALES +
+                             " WHERE " + COLUMN_TIMESTAMP + " >= ? AND " + COLUMN_TIMESTAMP + " <= ?" +
+                             " ORDER BY " + COLUMN_TIMESTAMP + " DESC";
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery(selectQuery, new String[]{String.valueOf(startTime), String.valueOf(endTime)});
+
+        if (cursor.moveToFirst()) {
+            do {
+                int id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID));
+                String brand = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_BRAND));
+                String model = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_MODEL));
+                String variant = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_VARIANT));
+                int qty = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_QUANTITY));
+                double price = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_PRICE));
+                String segment = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SEGMENT));
+                long timestamp = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_TIMESTAMP));
+
+                SaleItem sale = new SaleItem(id, brand, model, variant, qty, price, segment, timestamp);
+                saleList.add(sale);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
+        return saleList;
+    }
 }

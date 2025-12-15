@@ -47,6 +47,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 public class SalesTrackerActivity extends AppCompatActivity {
 
     private EditText etBrand, etModel, etVariant, etQuantity, etPrice;
+    private TextView tvDashboardSummary;
     private SalesDatabaseHelper dbHelper;
     private RecyclerView recyclerView;
     private SaleAdapter adapter;
@@ -70,6 +71,7 @@ public class SalesTrackerActivity extends AppCompatActivity {
         etVariant = findViewById(R.id.et_variant);
         etQuantity = findViewById(R.id.et_quantity);
         etPrice = findViewById(R.id.et_price);
+        tvDashboardSummary = findViewById(R.id.tv_dashboard_summary);
 
         Button btnAddSale = findViewById(R.id.btn_add_sale);
         Button btnExportPdf = findViewById(R.id.btn_export_pdf);
@@ -84,8 +86,40 @@ public class SalesTrackerActivity extends AppCompatActivity {
         loadSales();
 
         btnAddSale.setOnClickListener(v -> addSale());
-        btnExportPdf.setOnClickListener(v -> exportToPdf());
-        btnExportExcel.setOnClickListener(v -> exportToExcel());
+        btnExportPdf.setOnClickListener(v -> showExportDialog(true));
+        btnExportExcel.setOnClickListener(v -> showExportDialog(false));
+    }
+
+    private void showExportDialog(boolean isPdf) {
+        String[] options = {"All Time", "Today", "This Month"};
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Select Export Period")
+            .setItems(options, (dialog, which) -> {
+                long start = 0;
+                long end = System.currentTimeMillis();
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+
+                if (which == 1) { // Today
+                    cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                    cal.set(java.util.Calendar.MINUTE, 0);
+                    cal.set(java.util.Calendar.SECOND, 0);
+                    cal.set(java.util.Calendar.MILLISECOND, 0);
+                    start = cal.getTimeInMillis();
+                } else if (which == 2) { // This Month
+                    cal.set(java.util.Calendar.DAY_OF_MONTH, 1);
+                    cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                    cal.set(java.util.Calendar.MINUTE, 0);
+                    cal.set(java.util.Calendar.SECOND, 0);
+                    cal.set(java.util.Calendar.MILLISECOND, 0);
+                    start = cal.getTimeInMillis();
+                }
+
+                List<SaleItem> data = (start == 0) ? dbHelper.getAllSales() : dbHelper.getSalesByDateRange(start, end);
+
+                if (isPdf) exportToPdf(data);
+                else exportToExcel(data);
+            })
+            .show();
     }
 
     private void loadSales() {
@@ -180,9 +214,44 @@ public class SalesTrackerActivity extends AppCompatActivity {
         xAxis.setGranularityEnabled(true);
 
         barChart.invalidate();
+
+        updateSummaryText();
     }
 
-    private void exportToPdf() {
+    private void updateSummaryText() {
+        // Calculate This Month vs Last Month
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+
+        // This Month
+        cal.set(java.util.Calendar.DAY_OF_MONTH, 1);
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        cal.set(java.util.Calendar.MINUTE, 0);
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        long thisMonthStart = cal.getTimeInMillis();
+        long now = System.currentTimeMillis();
+
+        // Last Month
+        cal.add(java.util.Calendar.MONTH, -1);
+        long lastMonthStart = cal.getTimeInMillis();
+        cal.add(java.util.Calendar.MONTH, 1); // Reset to start of this month
+        cal.add(java.util.Calendar.MILLISECOND, -1);
+        long lastMonthEnd = cal.getTimeInMillis(); // End of last month
+
+        List<SaleItem> thisMonthSales = dbHelper.getSalesByDateRange(thisMonthStart, now);
+        List<SaleItem> lastMonthSales = dbHelper.getSalesByDateRange(lastMonthStart, lastMonthEnd);
+
+        double thisMonthValue = 0;
+        for (SaleItem item : thisMonthSales) thisMonthValue += (item.getPrice() * item.getQuantity());
+
+        double lastMonthValue = 0;
+        for (SaleItem item : lastMonthSales) lastMonthValue += (item.getPrice() * item.getQuantity());
+
+        String summary = String.format(Locale.getDefault(), "This Month: $%.2f | Last Month: $%.2f", thisMonthValue, lastMonthValue);
+        tvDashboardSummary.setText(summary);
+    }
+
+    private void exportToPdf(List<SaleItem> dataToExport) {
         PdfDocument document = new PdfDocument();
         PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(595, 842, 1).create(); // A4 size approx
         PdfDocument.Page page = document.startPage(pageInfo);
@@ -204,7 +273,7 @@ public class SalesTrackerActivity extends AppCompatActivity {
         Map<String, Integer> brandVolume = new HashMap<>();
         Map<String, Double> brandValue = new HashMap<>();
 
-        for(SaleItem item : saleList) {
+        for(SaleItem item : dataToExport) {
              String line = item.getBrand() + " | " + item.getModel() + " | " + item.getQuantity() + " | " + item.getPrice() + " | " + item.getSegment();
              canvas.drawText(line, 20, y, paint);
              y += 20;
@@ -247,7 +316,7 @@ public class SalesTrackerActivity extends AppCompatActivity {
         document.close();
     }
 
-    private void exportToExcel() {
+    private void exportToExcel(List<SaleItem> dataToExport) {
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("Sales");
 
@@ -264,7 +333,7 @@ public class SalesTrackerActivity extends AppCompatActivity {
         int rowNum = 1;
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
 
-        for (SaleItem item : saleList) {
+        for (SaleItem item : dataToExport) {
             Row row = sheet.createRow(rowNum++);
             row.createCell(0).setCellValue(item.getId());
             row.createCell(1).setCellValue(item.getBrand());
