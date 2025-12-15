@@ -2,6 +2,7 @@ package com.example.enterprisehub;
 
 import android.app.DatePickerDialog;
 import android.content.ContentValues;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -77,6 +78,8 @@ public class SalesTrackerActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_sales_tracker);
 
+        checkSecurity();
+
         dbHelper = new SalesDatabaseHelper(this);
 
         spBrand = findViewById(R.id.sp_brand);
@@ -109,6 +112,26 @@ public class SalesTrackerActivity extends AppCompatActivity {
         View.OnClickListener datePickerListener = v -> showDatePicker();
         etDate.setOnClickListener(datePickerListener);
         btnDatePicker.setOnClickListener(datePickerListener);
+    }
+
+    private void checkSecurity() {
+        long lastActive = getSharedPreferences("EnterpriseHubPrefs", MODE_PRIVATE).getLong(LoginActivity.KEY_LAST_ACTIVE, 0);
+        long now = System.currentTimeMillis();
+
+        // 2 minutes timeout
+        if (now - lastActive > 2 * 60 * 1000) {
+             startActivity(new Intent(this, LoginActivity.class));
+             finish();
+        } else {
+            // Reset timer on interaction (here approximated by onResume/Activity start)
+            getSharedPreferences("EnterpriseHubPrefs", MODE_PRIVATE).edit().putLong(LoginActivity.KEY_LAST_ACTIVE, now).apply();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        checkSecurity();
     }
 
     private void setupSpinner() {
@@ -164,7 +187,7 @@ public class SalesTrackerActivity extends AppCompatActivity {
 
                 List<SaleItem> data = (start == 0) ? dbHelper.getAllSales() : dbHelper.getSalesByDateRange(start, end);
 
-                if (isPdf) exportToPdfMatrix(data);
+                if (isPdf) PdfExport.generateMatrixPdf(this, data);
                 else exportToExcel(data);
             })
             .show();
@@ -231,29 +254,38 @@ public class SalesTrackerActivity extends AppCompatActivity {
 
     private void updateChart() {
         try {
-            Map<String, Integer> brandCounts = new HashMap<>();
+            Map<String, Integer> brandCounts = new HashMap<>(); // For Bar Chart (Volume)
+            Map<String, Double> brandValues = new HashMap<>(); // For Pie Chart (Value)
+
             for (SaleItem item : saleList) {
                 brandCounts.put(item.getBrand(), brandCounts.getOrDefault(item.getBrand(), 0) + item.getQuantity());
+                brandValues.put(item.getBrand(), brandValues.getOrDefault(item.getBrand(), 0.0) + (item.getPrice() * item.getQuantity()));
             }
 
-            // PIE CHART
+            // PIE CHART: Show VALUE (Rupees)
             List<PieEntry> entries = new ArrayList<>();
-            for (Map.Entry<String, Integer> entry : brandCounts.entrySet()) {
-                entries.add(new PieEntry(entry.getValue(), entry.getKey()));
+            for (Map.Entry<String, Double> entry : brandValues.entrySet()) {
+                // Formatting as Integer for cleaner look on chart, or Float
+                entries.add(new PieEntry(entry.getValue().floatValue(), entry.getKey()));
             }
 
             if (!entries.isEmpty()) {
-                PieDataSet dataSet = new PieDataSet(entries, "Brand Share");
+                PieDataSet dataSet = new PieDataSet(entries, "Brand Share (Value)");
                 dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
+                dataSet.setValueTextSize(14f); // UPGRADE: Bold/Size
+                dataSet.setValueTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+
                 PieData pieData = new PieData(dataSet);
                 pieChart.setData(pieData);
                 pieChart.setDescription(null);
+                pieChart.setEntryLabelTextSize(12f);
+                pieChart.setEntryLabelColor(Color.BLACK);
                 pieChart.invalidate();
             } else {
                  pieChart.clear();
             }
 
-            // BAR CHART with CUSTOM COLORS
+            // BAR CHART: Show VOLUME (Counts) - Kept as requested
             List<BarEntry> barEntries = new ArrayList<>();
             List<String> labels = new ArrayList<>();
             List<Integer> colors = new ArrayList<>();
@@ -284,6 +316,8 @@ public class SalesTrackerActivity extends AppCompatActivity {
                 BarDataSet barDataSet = new BarDataSet(barEntries, "Volume by Brand");
                 barDataSet.setColors(colors);
                 barDataSet.setDrawValues(true);
+                barDataSet.setValueTextSize(14f); // UPGRADE: Bold/Size
+                barDataSet.setValueTypeface(android.graphics.Typeface.DEFAULT_BOLD);
 
                 BarData barData = new BarData(barDataSet);
                 barData.setBarWidth(0.9f);
@@ -299,6 +333,7 @@ public class SalesTrackerActivity extends AppCompatActivity {
                 xAxis.setGranularity(1f);
                 xAxis.setGranularityEnabled(true);
                 xAxis.setDrawGridLines(false); // Only Y axis grid usually needed
+                xAxis.setTextSize(12f);
 
                 barChart.getAxisLeft().setDrawGridLines(true);
                 barChart.getAxisRight().setDrawGridLines(false);
@@ -348,147 +383,6 @@ public class SalesTrackerActivity extends AppCompatActivity {
         } catch (Exception e) {
              Log.e("SalesTracker", "Error updating summary: " + e.getMessage());
         }
-    }
-
-    // THE MATRIX PDF EXPORT
-    private void exportToPdfMatrix(List<SaleItem> dataToExport) {
-        PdfDocument document = new PdfDocument();
-        // Landscape might be better for Matrix, but A4 Portrait is standard. Let's try A4.
-        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(595, 842, 1).create();
-        PdfDocument.Page page = document.startPage(pageInfo);
-        Canvas canvas = page.getCanvas();
-        Paint paint = new Paint();
-        paint.setColor(Color.BLACK);
-        paint.setTextSize(10); // Smaller text for matrix
-
-        int y = 40;
-        int x = 20;
-
-        // Title
-        paint.setTextSize(14);
-        paint.setFakeBoldText(true);
-        canvas.drawText("Sales Matrix Report", x, y, paint);
-        y += 30;
-        paint.setTextSize(10);
-        paint.setFakeBoldText(false);
-
-        // 1. Prepare Data
-        // Map<DateString, Map<Brand, Volume>>
-        Map<String, Map<String, Integer>> matrix = new HashMap<>();
-        List<String> dates = new ArrayList<>();
-        List<String> brands = new ArrayList<>();
-
-        // Use LinkedHashSet or fixed list for Brands to keep order if desired
-        String[] brandOrder = {"Samsung", "Apple", "Realme", "Xiaomi", "Oppo", "Vivo", "Motorola", "Others"};
-        for (String b : brandOrder) brands.add(b);
-
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-
-        for (SaleItem item : dataToExport) {
-            String dateStr = sdf.format(new Date(item.getTimestamp()));
-            if (!dates.contains(dateStr)) dates.add(dateStr);
-
-            // Check if brand is in our standard list, if not add to Others logic or just add to list?
-            // For Matrix, we usually stick to fixed columns.
-            // Let's assume input is normalized via Spinner.
-            // If user enters custom brand via DB hack, we might miss it.
-            // Let's dynamically add brands not in list?
-            if (!brands.contains(item.getBrand()) && !brands.contains("Others")) {
-                brands.add(item.getBrand());
-            }
-
-            Map<String, Integer> row = matrix.getOrDefault(dateStr, new HashMap<>());
-            row.put(item.getBrand(), row.getOrDefault(item.getBrand(), 0) + item.getQuantity());
-            matrix.put(dateStr, row);
-        }
-
-        // Sort Dates descending
-        Collections.sort(dates, Collections.reverseOrder());
-
-        // 2. Draw Header Row
-        int colWidth = 50;
-        int dateColWidth = 70;
-
-        canvas.drawText("Date", x, y, paint);
-        int currentX = x + dateColWidth;
-
-        for (String brand : brands) {
-            canvas.drawText(brand, currentX, y, paint);
-            currentX += colWidth;
-        }
-        y += 10;
-        canvas.drawLine(x, y, currentX, y, paint);
-        y += 20;
-
-        // 3. Draw Rows
-        int totalVol = 0;
-
-        for (String date : dates) {
-            canvas.drawText(date, x, y, paint);
-            currentX = x + dateColWidth;
-            Map<String, Integer> rowData = matrix.get(date);
-
-            for (String brand : brands) {
-                int vol = rowData.getOrDefault(brand, 0);
-                if (vol > 0) {
-                    canvas.drawText(String.valueOf(vol), currentX, y, paint);
-                    totalVol += vol;
-                } else {
-                     canvas.drawText("-", currentX, y, paint);
-                }
-                currentX += colWidth;
-            }
-            y += 20;
-
-            if (y > 750) {
-                document.finishPage(page);
-                page = document.startPage(pageInfo);
-                canvas = page.getCanvas();
-                y = 40;
-                // Re-draw header? For simplicity, skipping header redraw on new page for now.
-            }
-        }
-
-        // 4. Summary
-        y += 10;
-        canvas.drawLine(x, y, currentX, y, paint);
-        y += 20;
-        paint.setFakeBoldText(true);
-        canvas.drawText("Total Volume: " + totalVol, x, y, paint);
-
-        document.finishPage(page);
-
-        savePdfToMediaStore(document);
-    }
-
-    private void savePdfToMediaStore(PdfDocument document) {
-        try {
-            OutputStream fos;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                ContentValues values = new ContentValues();
-                values.put(MediaStore.MediaColumns.DISPLAY_NAME, "sales_matrix_" + System.currentTimeMillis() + ".pdf");
-                values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
-                values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
-
-                Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-                if (uri == null) throw new IOException("Failed to create new MediaStore record.");
-                fos = getContentResolver().openOutputStream(uri);
-            } else {
-                String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString();
-                java.io.File file = new java.io.File(path, "sales_matrix_" + System.currentTimeMillis() + ".pdf");
-                fos = new java.io.FileOutputStream(file);
-            }
-
-            if (fos != null) {
-                document.writeTo(fos);
-                fos.close();
-                Toast.makeText(this, "Matrix Report Exported", Toast.LENGTH_LONG).show();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Error saving PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-        document.close();
     }
 
     private void exportToExcel(List<SaleItem> dataToExport) {
