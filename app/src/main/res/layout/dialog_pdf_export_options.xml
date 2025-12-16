@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RadioGroup xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <RadioButton
+        android:id="@+id/rb_matrix"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Matrix Report (Date x Brand)"
+        android:checked="true"
+        android:padding="8dp"/>
+
+    <RadioButton
+        android:id="@+id/rb_segment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Segment Report (Price x Brand)"
+        android:padding="8dp"/>
+
+</RadioGroup>

@@ -324,7 +324,7 @@ public class PdfExport {
         }
     }
 
-    public static void generateSegmentMatrixPdf(Context context, List<SaleItem> dataToExport) {
+    public static void createSegmentMatrix(Context context, List<SaleItem> dataToExport) {
         PdfDocument document = new PdfDocument();
         int pageWidth = 842;
         int pageHeight = 595;

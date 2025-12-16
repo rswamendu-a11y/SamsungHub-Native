@@ -30,19 +30,10 @@
         android:layout_marginBottom="8dp"/>
 
     <Button
-        android:id="@+id/btn_export_pdf_matrix"
+        android:id="@+id/btn_export_pdf"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Export PDF Matrix Report"
-        android:backgroundTint="@color/samsung_blue"
-        android:textColor="@color/white"
-        android:layout_marginBottom="8dp"/>
-
-    <Button
-        android:id="@+id/btn_export_segment"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Export Segment Report (PDF)"
+        android:text="Export PDF Report"
         android:backgroundTint="@color/samsung_blue"
         android:textColor="@color/white"
         android:layout_marginBottom="8dp"/>
@@ -53,6 +44,15 @@
         android:layout_height="wrap_content"
         android:text="Export Excel Matrix"
         android:backgroundTint="@color/samsung_blue"
+        android:textColor="@color/white"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btn_export_master_backup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Master Backup (Excel)"
+        android:backgroundTint="#2E7D32"
         android:textColor="@color/white"
         android:layout_marginBottom="16dp"/>
 

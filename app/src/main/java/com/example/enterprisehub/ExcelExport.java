@@ -127,11 +127,46 @@ public class ExcelExport {
         saveExcelToMediaStore(context, workbook);
     }
 
+    public static void exportMasterBackup(Context context, List<SaleItem> dataToExport) {
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("Raw Data");
+
+        // 1. Header
+        Row header = sheet.createRow(0);
+        String[] columns = {"ID", "Brand", "Model", "Variant", "Quantity", "Price", "Segment", "Date"};
+        for (int i = 0; i < columns.length; i++) {
+            header.createCell(i).setCellValue(columns[i]);
+        }
+
+        // 2. Data
+        int rowNum = 1;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+
+        for (SaleItem item : dataToExport) {
+            Row row = sheet.createRow(rowNum++);
+            row.createCell(0).setCellValue(item.getId());
+            row.createCell(1).setCellValue(item.getBrand());
+            row.createCell(2).setCellValue(item.getModel());
+            row.createCell(3).setCellValue(item.getVariant());
+            row.createCell(4).setCellValue(item.getQuantity());
+            row.createCell(5).setCellValue(item.getPrice());
+            row.createCell(6).setCellValue(item.getSegment());
+            // Use Selected Date (Timestamp)
+            row.createCell(7).setCellValue(sdf.format(new Date(item.getTimestamp())));
+        }
+
+        saveExcelToMediaStore(context, workbook, "Master_Backup_");
+    }
+
     private static void saveExcelToMediaStore(Context context, Workbook workbook) {
+        saveExcelToMediaStore(context, workbook, "Matrix_Excel_");
+    }
+
+    private static void saveExcelToMediaStore(Context context, Workbook workbook, String prefix) {
         Uri fileUri = null;
         try {
             OutputStream fos;
-            String fileName = "Matrix_Excel_" + System.currentTimeMillis() + ".xlsx";
+            String fileName = prefix + System.currentTimeMillis() + ".xlsx";
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 ContentValues values = new ContentValues();

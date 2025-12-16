@@ -22,9 +22,9 @@ public class SettingsActivity extends AppCompatActivity {
         Button btnProfile = findViewById(R.id.btn_profile);
         Switch switchDarkMode = findViewById(R.id.switch_dark_mode);
 
-        Button btnExportPdf = findViewById(R.id.btn_export_pdf_matrix);
-        Button btnExportSegment = findViewById(R.id.btn_export_segment);
+        Button btnExportPdf = findViewById(R.id.btn_export_pdf);
         Button btnExportExcel = findViewById(R.id.btn_export_excel_matrix);
+        Button btnExportMaster = findViewById(R.id.btn_export_master_backup);
 
         btnImport.setOnClickListener(v -> {
             startActivity(new Intent(SettingsActivity.this, ImportActivity.class));
@@ -34,9 +34,9 @@ public class SettingsActivity extends AppCompatActivity {
             startActivity(new Intent(SettingsActivity.this, ProfileActivity.class));
         });
 
-        btnExportPdf.setOnClickListener(v -> showExportDialog(1));
-        btnExportSegment.setOnClickListener(v -> showExportDialog(2));
+        btnExportPdf.setOnClickListener(v -> showPdfExportDialog());
         btnExportExcel.setOnClickListener(v -> showExportDialog(3));
+        btnExportMaster.setOnClickListener(v -> showExportDialog(4));
 
         // PIN Logic
         SharedPreferences prefs = getSharedPreferences("EnterpriseHubPrefs", MODE_PRIVATE);
@@ -67,6 +67,23 @@ public class SettingsActivity extends AppCompatActivity {
         });
     }
 
+    private void showPdfExportDialog() {
+        android.widget.RadioButton rbMatrix, rbSegment;
+        android.view.View view = getLayoutInflater().inflate(R.layout.dialog_pdf_export_options, null);
+        rbMatrix = view.findViewById(R.id.rb_matrix);
+        rbSegment = view.findViewById(R.id.rb_segment);
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Select Report Type")
+            .setView(view)
+            .setPositiveButton("Next", (dialog, which) -> {
+                int type = rbMatrix.isChecked() ? 1 : 2;
+                showExportDialog(type);
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
     private void showExportDialog(int type) {
         String[] options = {"All Time", "Today", "This Month"};
         new androidx.appcompat.app.AlertDialog.Builder(this)
@@ -95,8 +112,9 @@ public class SettingsActivity extends AppCompatActivity {
                 java.util.List<SaleItem> data = (start == 0) ? dbHelper.getAllSales() : dbHelper.getSalesByDateRange(start, end);
 
                 if (type == 1) PdfExport.generateMatrixPdf(this, data);
-                else if (type == 2) PdfExport.generateSegmentMatrixPdf(this, data);
+                else if (type == 2) PdfExport.createSegmentMatrix(this, data);
                 else if (type == 3) ExcelExport.generateMatrixExcel(this, data);
+                else if (type == 4) ExcelExport.exportMasterBackup(this, data);
             })
             .show();
     }
