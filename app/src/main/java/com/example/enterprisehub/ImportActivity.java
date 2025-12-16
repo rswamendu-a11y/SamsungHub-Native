@@ -118,7 +118,14 @@ public class ImportActivity extends AppCompatActivity {
                                         Date date = sdf.parse(dateStr);
                                         if (date != null) timestamp = date.getTime();
                                     } catch (Exception e) {
-                                        // Ignore parse error, use current time
+                                        // Try backup format (yyyy-MM-dd)
+                                        try {
+                                            SimpleDateFormat sdfBackup = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                                            Date date = sdfBackup.parse(dateStr);
+                                            if (date != null) timestamp = date.getTime();
+                                        } catch (Exception ex) {
+                                            Log.e("Import", "Date parse error: " + dateStr);
+                                        }
                                     }
                                 }
                             }
