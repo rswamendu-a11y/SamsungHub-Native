@@ -324,28 +324,135 @@ public class PdfExport {
         }
     }
 
+    public static void generateSegmentMatrixPdf(Context context, List<SaleItem> dataToExport) {
+        PdfDocument document = new PdfDocument();
+        int pageWidth = 842;
+        int pageHeight = 595;
+        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
+        PdfDocument.Page page = document.startPage(pageInfo);
+        Canvas canvas = page.getCanvas();
+
+        TextPaint textPaint = new TextPaint();
+        textPaint.setColor(Color.BLACK);
+        textPaint.setTextSize(10);
+        textPaint.setTypeface(Typeface.DEFAULT);
+
+        Paint linePaint = new Paint();
+        linePaint.setColor(Color.BLACK);
+        linePaint.setStyle(Paint.Style.STROKE);
+        linePaint.setStrokeWidth(0.5f);
+
+        // 1. Prepare Data
+        Set<String> brandSet = new HashSet<>();
+        Set<String> segmentSet = new HashSet<>();
+
+        // Map: Segment -> (Brand -> Volume)
+        Map<String, Map<String, Integer>> matrix = new TreeMap<>();
+
+        for (SaleItem item : dataToExport) {
+            brandSet.add(item.getBrand());
+            segmentSet.add(item.getSegment());
+
+            if (!matrix.containsKey(item.getSegment())) matrix.put(item.getSegment(), new HashMap<>());
+
+            Map<String, Integer> brandMap = matrix.get(item.getSegment());
+            brandMap.put(item.getBrand(), brandMap.getOrDefault(item.getBrand(), 0) + item.getQuantity());
+        }
+
+        List<String> uniqueBrands = new ArrayList<>(brandSet);
+        Collections.sort(uniqueBrands);
+
+        // 2. Define Columns
+        int xStart = 40;
+        int yStart = 80;
+
+        List<ColumnInfo> columns = new ArrayList<>();
+        columns.add(new ColumnInfo("Segment", 80));
+
+        for (String brand : uniqueBrands) {
+            columns.add(new ColumnInfo(brand, 60));
+        }
+        columns.add(new ColumnInfo("Total", 60));
+
+        // 3. Draw Header
+        SharedPreferences prefs = context.getSharedPreferences("EnterpriseHubPrefs", Context.MODE_PRIVATE);
+        String ownerName = prefs.getString(ProfileActivity.KEY_OWNER, "");
+        String outletName = prefs.getString(ProfileActivity.KEY_OUTLET, "Samsung Hub");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        drawDocumentHeader(canvas, ownerName, outletName, "Segment Matrix - " + sdf.format(new Date()), pageWidth);
+
+        // 4. Draw Table
+        int y = yStart;
+        int rowHeight = 30;
+
+        // Header Row
+        textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+        drawRow(canvas, columns, xStart, y, rowHeight, null, textPaint, linePaint, true);
+        y += rowHeight;
+        textPaint.setTypeface(Typeface.DEFAULT);
+
+        // Data Rows
+        for (Map.Entry<String, Map<String, Integer>> entry : matrix.entrySet()) {
+            String segment = entry.getKey();
+            Map<String, Integer> brandData = entry.getValue();
+            List<String> rowValues = new ArrayList<>();
+            rowValues.add(segment);
+
+            int rowTotal = 0;
+            for(String brand : uniqueBrands) {
+                int val = brandData.getOrDefault(brand, 0);
+                rowValues.add(val == 0 ? "-" : String.valueOf(val));
+                rowTotal += val;
+            }
+            rowValues.add(String.valueOf(rowTotal));
+
+            drawRow(canvas, columns, xStart, y, rowHeight, rowValues, textPaint, linePaint, false);
+            y += rowHeight;
+        }
+
+        document.finishPage(page);
+        savePdfToMediaStore(context, document, "Segment_Report");
+    }
+
     private static void savePdfToMediaStore(Context context, PdfDocument document) {
+        savePdfToMediaStore(context, document, "Matrix_Report");
+    }
+
+    private static void savePdfToMediaStore(Context context, PdfDocument document, String fileNamePrefix) {
+        Uri pdfUri = null;
         try {
             OutputStream fos;
+            String fileName = fileNamePrefix + "_" + System.currentTimeMillis() + ".pdf";
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 ContentValues values = new ContentValues();
-                values.put(MediaStore.MediaColumns.DISPLAY_NAME, "Matrix_Report_" + System.currentTimeMillis() + ".pdf");
+                values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
                 values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
                 values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
 
-                Uri uri = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-                if (uri == null) throw new IOException("Failed to create new MediaStore record.");
-                fos = context.getContentResolver().openOutputStream(uri);
+                pdfUri = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                if (pdfUri == null) throw new IOException("Failed to create new MediaStore record.");
+                fos = context.getContentResolver().openOutputStream(pdfUri);
             } else {
                 String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString();
-                File file = new File(path, "Matrix_Report_" + System.currentTimeMillis() + ".pdf");
+                File file = new File(path, fileName);
+                pdfUri = androidx.core.content.FileProvider.getUriForFile(context, context.getPackageName() + ".provider", file);
                 fos = new FileOutputStream(file);
             }
 
             if (fos != null) {
                 document.writeTo(fos);
                 fos.close();
-                Toast.makeText(context, "Matrix PDF Exported", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, fileNamePrefix + " Exported", Toast.LENGTH_LONG).show();
+
+                // Trigger Share
+                if (pdfUri != null) {
+                    android.content.Intent shareIntent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+                    shareIntent.setType("application/pdf");
+                    shareIntent.putExtra(android.content.Intent.EXTRA_STREAM, pdfUri);
+                    shareIntent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Report"));
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();

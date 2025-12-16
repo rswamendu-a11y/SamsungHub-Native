@@ -197,36 +197,22 @@
                     android:id="@+id/barChart"
                     android:layout_width="match_parent"
                     android:layout_height="200dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MTD vs LMTD"
+                    android:textStyle="bold"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="8dp"/>
+
+                <com.github.mikephil.charting.charts.BarChart
+                    android:id="@+id/barChartMtd"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-
-        <!-- Export Buttons -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
-
-            <Button
-                android:id="@+id/btn_export_pdf"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:text="PDF Matrix"
-                android:backgroundTint="@color/samsung_blue"
-                android:textColor="@color/white"/>
-
-            <Button
-                android:id="@+id/btn_export_excel"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:text="Excel Export"
-                android:backgroundTint="@color/samsung_blue"
-                android:textColor="@color/white"/>
-        </LinearLayout>
 
         <!-- List -->
         <androidx.recyclerview.widget.RecyclerView

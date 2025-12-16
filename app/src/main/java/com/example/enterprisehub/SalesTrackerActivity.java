@@ -67,6 +67,7 @@ public class SalesTrackerActivity extends AppCompatActivity {
     private List<SaleItem> saleList;
     private PieChart pieChart;
     private BarChart barChart;
+    private BarChart barChartMtd;
     private long selectedTimestamp = System.currentTimeMillis();
 
     @Override
@@ -91,13 +92,12 @@ public class SalesTrackerActivity extends AppCompatActivity {
         tvDashboardSummary = findViewById(R.id.tv_dashboard_summary);
 
         Button btnAddSale = findViewById(R.id.btn_add_sale);
-        Button btnExportPdf = findViewById(R.id.btn_export_pdf);
-        Button btnExportExcel = findViewById(R.id.btn_export_excel);
         ImageView btnDatePicker = findViewById(R.id.btn_date_picker);
 
         recyclerView = findViewById(R.id.recycler_view_sales);
         pieChart = findViewById(R.id.pieChart);
         barChart = findViewById(R.id.barChart);
+        barChartMtd = findViewById(R.id.barChartMtd);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -106,8 +106,6 @@ public class SalesTrackerActivity extends AppCompatActivity {
         updateDateLabel();
 
         btnAddSale.setOnClickListener(v -> addSale());
-        btnExportPdf.setOnClickListener(v -> showExportDialog(true));
-        btnExportExcel.setOnClickListener(v -> showExportDialog(false));
 
         View.OnClickListener datePickerListener = v -> showDatePicker();
         etDate.setOnClickListener(datePickerListener);
@@ -161,37 +159,6 @@ public class SalesTrackerActivity extends AppCompatActivity {
         etDate.setText(sdf.format(new Date(selectedTimestamp)));
     }
 
-    private void showExportDialog(boolean isPdf) {
-        String[] options = {"All Time", "Today", "This Month"};
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Select Export Period")
-            .setItems(options, (dialog, which) -> {
-                long start = 0;
-                long end = System.currentTimeMillis();
-                java.util.Calendar cal = java.util.Calendar.getInstance();
-
-                if (which == 1) { // Today
-                    cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
-                    cal.set(java.util.Calendar.MINUTE, 0);
-                    cal.set(java.util.Calendar.SECOND, 0);
-                    cal.set(java.util.Calendar.MILLISECOND, 0);
-                    start = cal.getTimeInMillis();
-                } else if (which == 2) { // This Month
-                    cal.set(java.util.Calendar.DAY_OF_MONTH, 1);
-                    cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
-                    cal.set(java.util.Calendar.MINUTE, 0);
-                    cal.set(java.util.Calendar.SECOND, 0);
-                    cal.set(java.util.Calendar.MILLISECOND, 0);
-                    start = cal.getTimeInMillis();
-                }
-
-                List<SaleItem> data = (start == 0) ? dbHelper.getAllSales() : dbHelper.getSalesByDateRange(start, end);
-
-                if (isPdf) PdfExport.generateMatrixPdf(this, data);
-                else exportToExcel(data);
-            })
-            .show();
-    }
 
     private void loadSales() {
         try {
@@ -343,9 +310,91 @@ public class SalesTrackerActivity extends AppCompatActivity {
                 barChart.clear();
             }
 
+            // MTD vs LMTD Chart
+            updateMtdChart();
+
             updateSummaryText();
         } catch (Exception e) {
             Log.e("SalesTracker", "Error updating charts: " + e.getMessage());
+        }
+    }
+
+    private void updateMtdChart() {
+        try {
+            Calendar cal = Calendar.getInstance();
+            long now = System.currentTimeMillis();
+
+            // MTD Range
+            cal.set(Calendar.DAY_OF_MONTH, 1);
+            cal.set(Calendar.HOUR_OF_DAY, 0);
+            cal.set(Calendar.MINUTE, 0);
+            cal.set(Calendar.SECOND, 0);
+            cal.set(Calendar.MILLISECOND, 0);
+            long mtdStart = cal.getTimeInMillis();
+
+            // LMTD Range
+            // 1st of Last Month
+            cal.add(Calendar.MONTH, -1);
+            long lmtdStart = cal.getTimeInMillis();
+
+            // Same Day Last Month (End)
+            cal.setTimeInMillis(now);
+            cal.add(Calendar.MONTH, -1);
+            long lmtdEnd = cal.getTimeInMillis();
+
+            List<SaleItem> mtdSales = dbHelper.getSalesByDateRange(mtdStart, now);
+            List<SaleItem> lmtdSales = dbHelper.getSalesByDateRange(lmtdStart, lmtdEnd);
+
+            Map<String, Float> mtdMap = new HashMap<>();
+            Map<String, Float> lmtdMap = new HashMap<>();
+
+            for(SaleItem item : mtdSales) mtdMap.put(item.getBrand(), mtdMap.getOrDefault(item.getBrand(), 0f) + item.getQuantity());
+            for(SaleItem item : lmtdSales) lmtdMap.put(item.getBrand(), lmtdMap.getOrDefault(item.getBrand(), 0f) + item.getQuantity());
+
+            List<String> brands = new ArrayList<>();
+            brands.addAll(mtdMap.keySet());
+            for(String b : lmtdMap.keySet()) if(!brands.contains(b)) brands.add(b);
+            Collections.sort(brands);
+
+            List<BarEntry> mtdEntries = new ArrayList<>();
+            List<BarEntry> lmtdEntries = new ArrayList<>();
+
+            for(int i=0; i<brands.size(); i++) {
+                String brand = brands.get(i);
+                mtdEntries.add(new BarEntry(i, mtdMap.getOrDefault(brand, 0f)));
+                lmtdEntries.add(new BarEntry(i, lmtdMap.getOrDefault(brand, 0f)));
+            }
+
+            if (!brands.isEmpty()) {
+                BarDataSet set1 = new BarDataSet(mtdEntries, "MTD Volume");
+                set1.setColor(Color.parseColor("#1428A0")); // Samsung Blue
+
+                BarDataSet set2 = new BarDataSet(lmtdEntries, "LMTD Volume");
+                set2.setColor(Color.LTGRAY);
+
+                float groupSpace = 0.08f;
+                float barSpace = 0.03f;
+                float barWidth = 0.43f;
+
+                BarData data = new BarData(set1, set2);
+                data.setBarWidth(barWidth);
+
+                barChartMtd.setData(data);
+                barChartMtd.groupBars(0, groupSpace, barSpace);
+                barChartMtd.getXAxis().setAxisMinimum(0);
+                barChartMtd.getXAxis().setAxisMaximum(brands.size());
+                barChartMtd.getXAxis().setValueFormatter(new IndexAxisValueFormatter(brands));
+                barChartMtd.getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM);
+                barChartMtd.getXAxis().setCenterAxisLabels(true);
+                barChartMtd.getXAxis().setGranularity(1f);
+                barChartMtd.getDescription().setEnabled(false);
+                barChartMtd.invalidate();
+            } else {
+                barChartMtd.clear();
+            }
+
+        } catch(Exception e) {
+             Log.e("SalesTracker", "Error updating MTD chart: " + e.getMessage());
         }
     }
 

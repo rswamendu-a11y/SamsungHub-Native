@@ -20,6 +20,42 @@
         android:text="Import Data (Excel)"
         android:layout_marginBottom="16dp"/>
 
+    <!-- New Export Buttons -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Reports &amp; Exports"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btn_export_pdf_matrix"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Export PDF Matrix Report"
+        android:backgroundTint="@color/samsung_blue"
+        android:textColor="@color/white"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btn_export_segment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Export Segment Report (PDF)"
+        android:backgroundTint="@color/samsung_blue"
+        android:textColor="@color/white"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btn_export_excel_matrix"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Export Excel Matrix"
+        android:backgroundTint="@color/samsung_blue"
+        android:textColor="@color/white"
+        android:layout_marginBottom="16dp"/>
+
     <Button
         android:id="@+id/btn_pin_action"
         android:layout_width="match_parent"

@@ -22,6 +22,10 @@ public class SettingsActivity extends AppCompatActivity {
         Button btnProfile = findViewById(R.id.btn_profile);
         Switch switchDarkMode = findViewById(R.id.switch_dark_mode);
 
+        Button btnExportPdf = findViewById(R.id.btn_export_pdf_matrix);
+        Button btnExportSegment = findViewById(R.id.btn_export_segment);
+        Button btnExportExcel = findViewById(R.id.btn_export_excel_matrix);
+
         btnImport.setOnClickListener(v -> {
             startActivity(new Intent(SettingsActivity.this, ImportActivity.class));
         });
@@ -29,6 +33,10 @@ public class SettingsActivity extends AppCompatActivity {
         btnProfile.setOnClickListener(v -> {
             startActivity(new Intent(SettingsActivity.this, ProfileActivity.class));
         });
+
+        btnExportPdf.setOnClickListener(v -> showExportDialog(1));
+        btnExportSegment.setOnClickListener(v -> showExportDialog(2));
+        btnExportExcel.setOnClickListener(v -> showExportDialog(3));
 
         // PIN Logic
         SharedPreferences prefs = getSharedPreferences("EnterpriseHubPrefs", MODE_PRIVATE);
@@ -57,5 +65,39 @@ public class SettingsActivity extends AppCompatActivity {
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
             }
         });
+    }
+
+    private void showExportDialog(int type) {
+        String[] options = {"All Time", "Today", "This Month"};
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Select Period")
+            .setItems(options, (dialog, which) -> {
+                long start = 0;
+                long end = System.currentTimeMillis();
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+
+                if (which == 1) { // Today
+                    cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                    cal.set(java.util.Calendar.MINUTE, 0);
+                    cal.set(java.util.Calendar.SECOND, 0);
+                    cal.set(java.util.Calendar.MILLISECOND, 0);
+                    start = cal.getTimeInMillis();
+                } else if (which == 2) { // This Month
+                    cal.set(java.util.Calendar.DAY_OF_MONTH, 1);
+                    cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                    cal.set(java.util.Calendar.MINUTE, 0);
+                    cal.set(java.util.Calendar.SECOND, 0);
+                    cal.set(java.util.Calendar.MILLISECOND, 0);
+                    start = cal.getTimeInMillis();
+                }
+
+                SalesDatabaseHelper dbHelper = new SalesDatabaseHelper(this);
+                java.util.List<SaleItem> data = (start == 0) ? dbHelper.getAllSales() : dbHelper.getSalesByDateRange(start, end);
+
+                if (type == 1) PdfExport.generateMatrixPdf(this, data);
+                else if (type == 2) PdfExport.generateSegmentMatrixPdf(this, data);
+                else if (type == 3) ExcelExport.generateMatrixExcel(this, data);
+            })
+            .show();
     }
 }
