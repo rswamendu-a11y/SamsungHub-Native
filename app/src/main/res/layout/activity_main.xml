@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F5F7FA">
+    android:background="@color/off_white">
 
     <!-- Header -->
     <LinearLayout
@@ -32,6 +32,16 @@
             android:textColor="#E0E0E0"
             android:textSize="16sp"
             android:layout_marginTop="4dp" />
+
+        <TextView
+            android:id="@+id/tv_proverb"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Wisdom loading..."
+            android:textColor="#B0C4DE"
+            android:textSize="14sp"
+            android:textStyle="italic"
+            android:layout_marginTop="12dp" />
     </LinearLayout>
 
     <!-- Grid Menu -->

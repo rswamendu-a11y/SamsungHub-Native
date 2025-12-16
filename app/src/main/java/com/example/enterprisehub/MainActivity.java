@@ -8,10 +8,11 @@ import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
 
-    private TextView tvWelcome, tvOutletName;
+    private TextView tvWelcome, tvOutletName, tvProverb;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -20,6 +21,9 @@ public class MainActivity extends AppCompatActivity {
 
         tvWelcome = findViewById(R.id.tv_welcome);
         tvOutletName = findViewById(R.id.tv_outlet_name);
+        tvProverb = findViewById(R.id.tv_proverb);
+
+        setupWisdom();
 
         CardView cardTracker = findViewById(R.id.card_tracker);
         CardView cardHistory = findViewById(R.id.card_history);
@@ -65,5 +69,17 @@ public class MainActivity extends AppCompatActivity {
         }
 
         tvOutletName.setText(outlet);
+    }
+
+    private void setupWisdom() {
+        String[] proverbs = {
+            "Sow the seeds of relationship, reap the harvest of sales.",
+            "Price is what you pay. Value is what you get.",
+            "Don't find customers for your products, find products for your customers.",
+            "Quality means doing it right when no one is looking."
+        };
+
+        int index = new Random().nextInt(proverbs.length);
+        tvProverb.setText("\"" + proverbs[index] + "\"");
     }
 }
