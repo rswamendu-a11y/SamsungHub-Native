@@ -6,10 +6,10 @@
     android:padding="16dp">
 
     <RadioButton
-        android:id="@+id/rb_matrix"
+        android:id="@+id/rb_simple_matrix"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Matrix Report (Date x Brand)"
+        android:text="Detailed Ledger"
         android:checked="true"
         android:padding="8dp"/>
 
@@ -17,7 +17,14 @@
         android:id="@+id/rb_segment"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Segment Report (Price x Brand)"
+        android:text="Segment Analysis"
+        android:padding="8dp"/>
+
+    <RadioButton
+        android:id="@+id/rb_daily_matrix"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Daily and monthly Matrix (With Logs)"
         android:padding="8dp"/>
 
 </RadioGroup>

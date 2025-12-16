@@ -68,16 +68,21 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void showPdfExportDialog() {
-        android.widget.RadioButton rbMatrix, rbSegment;
+        android.widget.RadioButton rbSimpleMatrix, rbSegment, rbDailyMatrix;
         android.view.View view = getLayoutInflater().inflate(R.layout.dialog_pdf_export_options, null);
-        rbMatrix = view.findViewById(R.id.rb_matrix);
+        rbSimpleMatrix = view.findViewById(R.id.rb_simple_matrix);
         rbSegment = view.findViewById(R.id.rb_segment);
+        rbDailyMatrix = view.findViewById(R.id.rb_daily_matrix);
 
         new androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle("Select Report Type")
             .setView(view)
             .setPositiveButton("Next", (dialog, which) -> {
-                int type = rbMatrix.isChecked() ? 1 : 2;
+                int type = 1; // Default to Simple Matrix
+                if (rbSimpleMatrix.isChecked()) type = 1;
+                else if (rbSegment.isChecked()) type = 2;
+                else if (rbDailyMatrix.isChecked()) type = 5; // New Type for Daily Matrix
+
                 showExportDialog(type);
             })
             .setNegativeButton("Cancel", null)
@@ -111,10 +116,11 @@ public class SettingsActivity extends AppCompatActivity {
                 SalesDatabaseHelper dbHelper = new SalesDatabaseHelper(this);
                 java.util.List<SaleItem> data = (start == 0) ? dbHelper.getAllSales() : dbHelper.getSalesByDateRange(start, end);
 
-                if (type == 1) PdfExport.generateMatrixPdf(this, data);
+                if (type == 1) PdfExport.createDetailedLedger(this, data);
                 else if (type == 2) PdfExport.createSegmentMatrix(this, data);
                 else if (type == 3) ExcelExport.generateMatrixExcel(this, data);
                 else if (type == 4) ExcelExport.exportMasterBackup(this, data);
+                else if (type == 5) PdfExport.createDailyMatrixReport(this, data);
             })
             .show();
     }

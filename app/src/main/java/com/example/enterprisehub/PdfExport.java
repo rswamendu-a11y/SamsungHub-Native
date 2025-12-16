@@ -35,7 +35,92 @@ import java.util.TreeMap;
 
 public class PdfExport {
 
-    public static void generateMatrixPdf(Context context, List<SaleItem> dataToExport) {
+    public static void createDailyMatrixReport(Context context, List<SaleItem> dataToExport) {
+        generateMatrixPdfInternal(context, dataToExport);
+    }
+
+    public static void createDetailedLedger(Context context, List<SaleItem> dataToExport) {
+        PdfDocument document = new PdfDocument();
+        int pageWidth = 842;
+        int pageHeight = 595;
+        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
+        PdfDocument.Page page = document.startPage(pageInfo);
+        Canvas canvas = page.getCanvas();
+
+        TextPaint textPaint = new TextPaint();
+        textPaint.setColor(Color.BLACK);
+        textPaint.setTextSize(10);
+        textPaint.setTypeface(Typeface.DEFAULT);
+
+        Paint linePaint = new Paint();
+        linePaint.setColor(Color.BLACK);
+        linePaint.setStyle(Paint.Style.STROKE);
+        linePaint.setStrokeWidth(0.5f);
+
+        // Define Columns
+        List<ColumnInfo> columns = new ArrayList<>();
+        columns.add(new ColumnInfo("Date", 80));
+        columns.add(new ColumnInfo("Brand", 100));
+        columns.add(new ColumnInfo("Model", 150));
+        columns.add(new ColumnInfo("Variant", 100));
+        columns.add(new ColumnInfo("Qty", 50));
+        columns.add(new ColumnInfo("Price", 80));
+        columns.add(new ColumnInfo("Total", 80));
+
+        // Draw Header
+        SharedPreferences prefs = context.getSharedPreferences("EnterpriseHubPrefs", Context.MODE_PRIVATE);
+        String ownerName = prefs.getString(ProfileActivity.KEY_OWNER, "");
+        String outletName = prefs.getString(ProfileActivity.KEY_OUTLET, "Samsung Hub");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        drawDocumentHeader(canvas, ownerName, outletName, "Detailed Ledger - " + sdf.format(new Date()), pageWidth);
+
+        int xStart = 40;
+        int yStart = 80;
+        int y = yStart;
+        int rowHeight = 25;
+
+        // Draw Table Header
+        textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+        drawRow(canvas, columns, xStart, y, rowHeight, null, textPaint, linePaint, true);
+        y += rowHeight;
+        textPaint.setTypeface(Typeface.DEFAULT);
+
+        // Sort Data by Date Descending
+        Collections.sort(dataToExport, (o1, o2) -> Long.compare(o2.getTimestamp(), o1.getTimestamp()));
+        SimpleDateFormat dateSdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+
+        // Draw Data Rows
+        for (SaleItem item : dataToExport) {
+            List<String> rowValues = new ArrayList<>();
+            rowValues.add(dateSdf.format(new Date(item.getTimestamp())));
+            rowValues.add(item.getBrand());
+            rowValues.add(item.getModel());
+            rowValues.add(item.getVariant());
+            rowValues.add(String.valueOf(item.getQuantity()));
+            rowValues.add(String.valueOf((int)item.getPrice()));
+            rowValues.add(String.valueOf((int)(item.getPrice() * item.getQuantity())));
+
+            if (y + rowHeight > pageHeight - 40) {
+                document.finishPage(page);
+                page = document.startPage(pageInfo);
+                canvas = page.getCanvas();
+                drawDocumentHeader(canvas, ownerName, outletName, "Detailed Ledger", pageWidth);
+                y = yStart;
+                textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+                drawRow(canvas, columns, xStart, y, rowHeight, null, textPaint, linePaint, true);
+                y += rowHeight;
+                textPaint.setTypeface(Typeface.DEFAULT);
+            }
+
+            drawRow(canvas, columns, xStart, y, rowHeight, rowValues, textPaint, linePaint, false);
+            y += rowHeight;
+        }
+
+        document.finishPage(page);
+        savePdfToMediaStore(context, document, "Detailed_Ledger");
+    }
+
+    private static void generateMatrixPdfInternal(Context context, List<SaleItem> dataToExport) {
         PdfDocument document = new PdfDocument();
         // A4 Landscape: 842 x 595
         int pageWidth = 842;
@@ -97,6 +182,7 @@ public class PdfExport {
 
         columns.add(new ColumnInfo("Total\nQty", 30));
         columns.add(new ColumnInfo("Total\nVal", 50));
+
         columns.add(new ColumnInfo("Logs", 200));
         columns.add(new ColumnInfo("Brand Summary", 150));
 
@@ -192,6 +278,7 @@ public class PdfExport {
 
             rowValues.add(String.valueOf(dayTotalQty));
             rowValues.add(String.valueOf((int) dayTotalVal));
+
             rowValues.add(logsBuilder.toString().trim());
             rowValues.add(summaryBuilder.toString().trim());
 
@@ -228,6 +315,7 @@ public class PdfExport {
 
         totalRowValues.add(String.valueOf(grandTotalQty));
         totalRowValues.add(String.valueOf((int) grandTotalVal));
+
         totalRowValues.add(""); // Logs empty
         totalRowValues.add(""); // Summary empty
 
@@ -248,7 +336,7 @@ public class PdfExport {
         drawRow(canvas, columns, xStart, y, 30, totalRowValues, textPaint, linePaint, false);
 
         document.finishPage(page);
-        savePdfToMediaStore(context, document);
+        savePdfToMediaStore(context, document, "Daily_Matrix_Log");
     }
 
     private static void drawDocumentHeader(Canvas canvas, String owner, String outlet, String dateStr, int pageWidth) {
