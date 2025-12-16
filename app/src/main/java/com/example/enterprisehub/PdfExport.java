@@ -32,7 +32,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 public class PdfExport {
 
@@ -56,10 +55,14 @@ public class PdfExport {
         linePaint.setStrokeWidth(0.5f);
 
         // 1. Prepare Data
-        // Get Unique Brands
         Set<String> brandSet = new HashSet<>();
+        long minDate = Long.MAX_VALUE;
+        long maxDate = Long.MIN_VALUE;
+
         for (SaleItem item : dataToExport) {
             brandSet.add(item.getBrand());
+            if (item.getTimestamp() < minDate) minDate = item.getTimestamp();
+            if (item.getTimestamp() > maxDate) maxDate = item.getTimestamp();
         }
         List<String> uniqueBrands = new ArrayList<>(brandSet);
         Collections.sort(uniqueBrands);
@@ -77,17 +80,15 @@ public class PdfExport {
         }
 
         // 2. Define Columns
-        // Fixed: Date(50), Outlet Info(50)
+        // Fixed: Date(50)
         // Dynamic: Per Brand (Qty 25, Val 45)
         // Fixed End: Total Qty(30), Total Val(50), Logs(200), Summary(150)
 
         int xStart = 20;
-        int yStart = 40;
-        int currentX = xStart;
+        int yStart = 80; // Shifted down for Header
 
         List<ColumnInfo> columns = new ArrayList<>();
         columns.add(new ColumnInfo("Date", 50));
-        columns.add(new ColumnInfo("Outlet Info", 50));
 
         for (String brand : uniqueBrands) {
             columns.add(new ColumnInfo(brand + "\nQty", 25));
@@ -99,7 +100,26 @@ public class PdfExport {
         columns.add(new ColumnInfo("Logs", 200));
         columns.add(new ColumnInfo("Brand Summary", 150));
 
-        // 3. Draw Header
+        // 3. Draw Document Header (Profile + Month/Year)
+        SharedPreferences prefs = context.getSharedPreferences("EnterpriseHubPrefs", Context.MODE_PRIVATE);
+        String ownerName = prefs.getString(ProfileActivity.KEY_OWNER, "");
+        String outletName = prefs.getString(ProfileActivity.KEY_OUTLET, "Samsung Hub");
+
+        // Determine Month/Year string
+        SimpleDateFormat headerSdf = new SimpleDateFormat("MMMM yyyy", Locale.getDefault());
+        String dateRangeStr;
+        if (minDate == Long.MAX_VALUE) {
+            dateRangeStr = headerSdf.format(new Date());
+        } else {
+            String start = headerSdf.format(new Date(minDate));
+            String end = headerSdf.format(new Date(maxDate));
+            if (start.equals(end)) dateRangeStr = start;
+            else dateRangeStr = start + " - " + end;
+        }
+
+        drawDocumentHeader(canvas, ownerName, outletName, dateRangeStr, pageWidth);
+
+        // 4. Draw Table Header
         int headerHeight = 30;
         int y = yStart;
 
@@ -108,27 +128,16 @@ public class PdfExport {
         y += headerHeight;
         textPaint.setTypeface(Typeface.DEFAULT);
 
-        // Get Profile Info
-        SharedPreferences prefs = context.getSharedPreferences("EnterpriseHubPrefs", Context.MODE_PRIVATE);
-        String ownerName = prefs.getString(ProfileActivity.KEY_OWNER, "");
-        String outletName = prefs.getString(ProfileActivity.KEY_OUTLET, "Samsung Hub");
-        String profileInfo = (ownerName.isEmpty() ? "" : ownerName + " - ") + outletName;
+        // Initialize Total Accumulators
+        Map<String, Integer> totalBrandQty = new HashMap<>();
+        Map<String, Double> totalBrandVal = new HashMap<>();
+        int grandTotalQty = 0;
+        double grandTotalVal = 0;
 
-        // 4. Draw Data Rows
+        // 5. Draw Data Rows
         for (Map.Entry<String, List<SaleItem>> entry : groupedData.entrySet()) {
             String date = entry.getKey();
             List<SaleItem> items = entry.getValue();
-
-            // Format Month Year from date string (yyyy-MM-dd)
-            String monthYear = "";
-            try {
-                Date d = sdf.parse(date);
-                SimpleDateFormat myFormat = new SimpleDateFormat("MMM yyyy", Locale.getDefault());
-                monthYear = myFormat.format(d);
-            } catch (Exception e) {
-                monthYear = date;
-            }
-            String outletColumnText = profileInfo + "\n" + monthYear;
 
             // Calculate Row Data
             Map<String, Integer> brandQty = new HashMap<>();
@@ -137,21 +146,28 @@ public class PdfExport {
             double dayTotalVal = 0;
             StringBuilder logsBuilder = new StringBuilder();
 
-            // Sort items by brand/model for logs
             Collections.sort(items, Comparator.comparing(SaleItem::getBrand).thenComparing(SaleItem::getModel));
 
             for (SaleItem item : items) {
-                brandQty.put(item.getBrand(), brandQty.getOrDefault(item.getBrand(), 0) + item.getQuantity());
-                brandVal.put(item.getBrand(), brandVal.getOrDefault(item.getBrand(), 0.0) + (item.getPrice() * item.getQuantity()));
+                int q = item.getQuantity();
+                double v = item.getPrice() * q;
 
-                dayTotalQty += item.getQuantity();
-                dayTotalVal += (item.getPrice() * item.getQuantity());
+                brandQty.put(item.getBrand(), brandQty.getOrDefault(item.getBrand(), 0) + q);
+                brandVal.put(item.getBrand(), brandVal.getOrDefault(item.getBrand(), 0.0) + v);
 
-                // Log Entry: "Samsung S23 (256GB) - 1u (Val: 75000)"
+                dayTotalQty += q;
+                dayTotalVal += v;
+
+                // Accumulate Grand Totals
+                totalBrandQty.put(item.getBrand(), totalBrandQty.getOrDefault(item.getBrand(), 0) + q);
+                totalBrandVal.put(item.getBrand(), totalBrandVal.getOrDefault(item.getBrand(), 0.0) + v);
+                grandTotalQty += q;
+                grandTotalVal += v;
+
                 logsBuilder.append(item.getBrand()).append(" ").append(item.getModel())
                            .append(" (").append(item.getVariant()).append(") - ")
-                           .append(item.getQuantity()).append("u (Val: ")
-                           .append((int)(item.getPrice() * item.getQuantity())).append(")\n");
+                           .append(q).append("u (Val: ")
+                           .append((int)v).append(")\n");
             }
 
             // Brand Summary
@@ -168,7 +184,6 @@ public class PdfExport {
             // Build Row Values
             List<String> rowValues = new ArrayList<>();
             rowValues.add(date);
-            rowValues.add(outletColumnText);
 
             for (String brand : uniqueBrands) {
                 rowValues.add(String.valueOf(brandQty.getOrDefault(brand, 0)));
@@ -189,8 +204,9 @@ public class PdfExport {
                 document.finishPage(page);
                 page = document.startPage(pageInfo);
                 canvas = page.getCanvas();
-                y = 40;
-                // Redraw Header
+                // Redraw Headers on new page
+                drawDocumentHeader(canvas, ownerName, outletName, dateRangeStr, pageWidth);
+                y = yStart;
                 textPaint.setTypeface(Typeface.DEFAULT_BOLD);
                 drawRow(canvas, columns, xStart, y, headerHeight, null, textPaint, linePaint, true);
                 y += headerHeight;
@@ -201,8 +217,57 @@ public class PdfExport {
             y += rowHeight;
         }
 
+        // 6. Draw Total Row
+        List<String> totalRowValues = new ArrayList<>();
+        totalRowValues.add("TOTAL");
+
+        for (String brand : uniqueBrands) {
+            totalRowValues.add(String.valueOf(totalBrandQty.getOrDefault(brand, 0)));
+            totalRowValues.add(String.valueOf(totalBrandVal.getOrDefault(brand, 0.0).intValue()));
+        }
+
+        totalRowValues.add(String.valueOf(grandTotalQty));
+        totalRowValues.add(String.valueOf((int) grandTotalVal));
+        totalRowValues.add(""); // Logs empty
+        totalRowValues.add(""); // Summary empty
+
+        // Check space for Total Row
+        if (y + 30 > pageHeight - 40) {
+            document.finishPage(page);
+            page = document.startPage(pageInfo);
+            canvas = page.getCanvas();
+            drawDocumentHeader(canvas, ownerName, outletName, dateRangeStr, pageWidth);
+            y = yStart;
+            textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+            drawRow(canvas, columns, xStart, y, headerHeight, null, textPaint, linePaint, true);
+            y += headerHeight;
+            textPaint.setTypeface(Typeface.DEFAULT);
+        }
+
+        textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+        drawRow(canvas, columns, xStart, y, 30, totalRowValues, textPaint, linePaint, false);
+
         document.finishPage(page);
         savePdfToMediaStore(context, document);
+    }
+
+    private static void drawDocumentHeader(Canvas canvas, String owner, String outlet, String dateStr, int pageWidth) {
+        Paint titlePaint = new Paint();
+        titlePaint.setColor(Color.BLACK);
+        titlePaint.setTextSize(14);
+        titlePaint.setTypeface(Typeface.DEFAULT_BOLD);
+        titlePaint.setTextAlign(Paint.Align.CENTER);
+
+        Paint subPaint = new Paint();
+        subPaint.setColor(Color.DKGRAY);
+        subPaint.setTextSize(10);
+        subPaint.setTypeface(Typeface.DEFAULT);
+        subPaint.setTextAlign(Paint.Align.CENTER);
+
+        float centerX = pageWidth / 2f;
+
+        canvas.drawText((owner.isEmpty() ? "" : owner + " - ") + outlet, centerX, 30, titlePaint);
+        canvas.drawText(dateStr, centerX, 50, subPaint);
     }
 
     private static void drawRow(Canvas canvas, List<ColumnInfo> columns, int startX, int y, int height,
