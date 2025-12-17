@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/windowBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Sales Tracker"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="@color/samsung_blue" />
+
+            <TextClock
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format12Hour="hh:mm:ss a"
+                android:format24Hour="HH:mm:ss"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="?android:attr/textColorPrimary"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_dashboard_summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Loading Summary..."
+            android:textSize="14sp"
+            android:textColor="?android:attr/textColorPrimary"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Input Fields Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="New Entry"
+                    android:textStyle="bold"
+                    android:textColor="@color/samsung_blue"
+                    android:layout_marginBottom="8dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
+
+                     <EditText
+                        android:id="@+id/et_date"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:focusable="false"
+                        android:clickable="true"
+                        android:hint="Select Date"
+                        android:textColor="?android:attr/textColorPrimary"/>
+
+                    <ImageView
+                         android:id="@+id/btn_date_picker"
+                         android:layout_width="32dp"
+                         android:layout_height="32dp"
+                         android:src="@android:drawable/ic_menu_my_calendar"
+                         app:tint="@color/samsung_blue"/>
+
+                </LinearLayout>
+
+                <Spinner
+                    android:id="@+id/sp_brand"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginBottom="8dp"/>
+
+                <EditText
+                    android:id="@+id/et_model"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:hint="Model (e.g., Galaxy S23)" />
+
+                <EditText
+                    android:id="@+id/et_variant"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:hint="Variant (e.g., 256GB)" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <EditText
+                        android:id="@+id/et_quantity"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:inputType="number"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:hint="Qty" />
+
+                    <EditText
+                        android:id="@+id/et_price"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:inputType="numberDecimal"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:hint="Price (₹)" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btn_add_sale"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Add Sale"
+                    android:backgroundTint="@color/samsung_blue"
+                    android:textColor="@color/white"
+                    android:layout_marginTop="8dp"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Charts Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="MTD vs LMTD"
+                        android:textStyle="bold"
+                        android:textColor="@color/samsung_blue"
+                        android:textSize="18sp"/>
+
+                    <RadioGroup
+                        android:id="@+id/rg_chart_type"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:orientation="horizontal"
+                        android:background="@drawable/toggle_bg"
+                        android:padding="2dp">
+
+                        <RadioButton
+                            android:id="@+id/rb_volume"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:text="Volume"
+                            android:button="@null"
+                            android:background="@drawable/toggle_selector"
+                            android:textColor="@color/toggle_text_color"
+                            android:paddingHorizontal="12dp"
+                            android:checked="true"
+                            android:gravity="center"/>
+
+                        <RadioButton
+                            android:id="@+id/rb_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:text="Value"
+                            android:button="@null"
+                            android:background="@drawable/toggle_selector"
+                            android:textColor="@color/toggle_text_color"
+                            android:paddingHorizontal="12dp"
+                            android:gravity="center"/>
+                    </RadioGroup>
+                </LinearLayout>
+
+                <com.github.mikephil.charting.charts.BarChart
+                    android:id="@+id/barChartComparison"
+                    android:layout_width="match_parent"
+                    android:layout_height="250dp" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- List -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_view_sales"
+            android:layout_width="match_parent"
+            android:layout_height="300dp" />
+
+    </LinearLayout>
+</ScrollView>
