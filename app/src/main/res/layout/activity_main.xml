@@ -170,24 +170,6 @@
 
         </GridLayout>
 
-        <!-- Revenue Chart -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Revenue Leaderboard"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/dark_text"
-            android:layout_marginLeft="24dp"
-            android:layout_marginTop="8dp"/>
-
-        <com.github.mikephil.charting.charts.HorizontalBarChart
-            android:id="@+id/chart_revenue"
-            android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginVertical="8dp"/>
-
         <Button
             android:id="@+id/btn_exit"
             android:layout_width="match_parent"

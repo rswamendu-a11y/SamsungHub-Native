@@ -163,54 +163,60 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Analytics"
-                    android:textStyle="bold"
-                    android:textColor="@color/samsung_blue"
-                    android:layout_marginBottom="8dp"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Brand Share (Value)"
-                    android:textStyle="bold"
-                    android:textColor="?android:attr/textColorPrimary"
-                    android:layout_marginBottom="8dp"/>
-
-                <com.github.mikephil.charting.charts.PieChart
-                    android:id="@+id/pieChart"
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="200dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Volume by Brand"
-                    android:textStyle="bold"
-                    android:textColor="?android:attr/textColorPrimary"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="8dp"/>
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="MTD vs LMTD"
+                        android:textStyle="bold"
+                        android:textColor="@color/samsung_blue"
+                        android:textSize="18sp"/>
+
+                    <RadioGroup
+                        android:id="@+id/rg_chart_type"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:orientation="horizontal"
+                        android:background="@drawable/toggle_bg"
+                        android:padding="2dp">
+
+                        <RadioButton
+                            android:id="@+id/rb_volume"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:text="Volume"
+                            android:button="@null"
+                            android:background="@drawable/toggle_selector"
+                            android:textColor="@color/toggle_text_color"
+                            android:paddingHorizontal="12dp"
+                            android:checked="true"
+                            android:gravity="center"/>
+
+                        <RadioButton
+                            android:id="@+id/rb_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:text="Value"
+                            android:button="@null"
+                            android:background="@drawable/toggle_selector"
+                            android:textColor="@color/toggle_text_color"
+                            android:paddingHorizontal="12dp"
+                            android:gravity="center"/>
+                    </RadioGroup>
+                </LinearLayout>
 
                 <com.github.mikephil.charting.charts.BarChart
-                    android:id="@+id/barChart"
+                    android:id="@+id/barChartComparison"
                     android:layout_width="match_parent"
-                    android:layout_height="200dp" />
+                    android:layout_height="250dp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="MTD vs LMTD"
-                    android:textStyle="bold"
-                    android:textColor="?android:attr/textColorPrimary"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="8dp"/>
-
-                <com.github.mikephil.charting.charts.BarChart
-                    android:id="@+id/barChartMtd"
-                    android:layout_width="match_parent"
-                    android:layout_height="200dp" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
