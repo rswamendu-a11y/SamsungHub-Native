@@ -20,6 +20,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".SalesTrackerActivity" />
+        <activity android:name=".ChartsActivity" />
         <activity android:name=".SettingsActivity" />
         <activity android:name=".ImportActivity" />
         <activity android:name=".ProfileActivity" />
