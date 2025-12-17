@@ -512,6 +512,7 @@ public class PdfExport {
             OutputStream fos;
             String fileName = fileNamePrefix + "_" + System.currentTimeMillis() + ".pdf";
 
+            // 1. Save to Downloads (User visible)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
@@ -532,6 +533,18 @@ public class PdfExport {
                 document.writeTo(fos);
                 fos.close();
                 Toast.makeText(context, fileNamePrefix + " Exported", Toast.LENGTH_LONG).show();
+
+                // 2. Auto-Save to Locker (Internal Storage)
+                try {
+                    File lockerDir = new File(context.getExternalFilesDir(null), "Sales_Vault");
+                    if (!lockerDir.exists()) lockerDir.mkdirs();
+                    File lockerFile = new File(lockerDir, fileName);
+                    FileOutputStream lockerFos = new FileOutputStream(lockerFile);
+                    document.writeTo(lockerFos);
+                    lockerFos.close();
+                } catch (Exception e) {
+                    e.printStackTrace(); // Fail silently for locker backup
+                }
 
                 // Trigger Share
                 if (pdfUri != null) {

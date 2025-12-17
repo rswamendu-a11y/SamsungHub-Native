@@ -28,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
         CardView cardHistory = findViewById(R.id.card_history);
         CardView cardSettings = findViewById(R.id.card_settings);
         CardView cardCharts = findViewById(R.id.card_charts);
+        CardView cardLocker = findViewById(R.id.card_locker);
         Button btnExit = findViewById(R.id.btn_exit);
 
         cardTracker.setOnClickListener(v -> {
@@ -37,6 +38,11 @@ public class MainActivity extends AppCompatActivity {
 
         cardHistory.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, SalesTrackerActivity.class);
+            startActivity(intent);
+        });
+
+        cardLocker.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, ReportLockerActivity.class);
             startActivity(intent);
         });
 

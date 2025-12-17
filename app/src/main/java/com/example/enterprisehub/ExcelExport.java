@@ -189,6 +189,18 @@ public class ExcelExport {
                 fos.close();
                 Toast.makeText(context, "Excel Matrix Exported", Toast.LENGTH_LONG).show();
 
+                // Auto-Save to Locker
+                try {
+                    File lockerDir = new File(context.getExternalFilesDir(null), "Sales_Vault");
+                    if (!lockerDir.exists()) lockerDir.mkdirs();
+                    File lockerFile = new File(lockerDir, fileName);
+                    FileOutputStream lockerFos = new FileOutputStream(lockerFile);
+                    workbook.write(lockerFos);
+                    lockerFos.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
                  // Trigger Share
                 if (fileUri != null) {
                     android.content.Intent shareIntent = new android.content.Intent(android.content.Intent.ACTION_SEND);
