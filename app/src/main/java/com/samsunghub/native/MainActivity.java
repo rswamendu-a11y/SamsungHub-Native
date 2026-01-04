@@ -1,4 +1,4 @@
-package com.example.enterprisehub;
+package com.samsunghub.native;
 
 import android.os.Bundle;
 import android.view.View;
