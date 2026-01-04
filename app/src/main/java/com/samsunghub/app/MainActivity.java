@@ -1,10 +1,12 @@
 package com.samsunghub.app;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import com.samsunghub.app.ui.SalesTrackerActivity;
 
 public class MainActivity extends AppCompatActivity {
     @Override
@@ -18,7 +20,8 @@ public class MainActivity extends AppCompatActivity {
         btnTracker.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(MainActivity.this, "Tracker: Ask Jules to build this next!", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(MainActivity.this, SalesTrackerActivity.class);
+                startActivity(intent);
             }
         });
 
