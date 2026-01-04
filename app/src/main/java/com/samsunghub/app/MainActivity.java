@@ -1,4 +1,4 @@
-package com.samsunghub.native;
+package com.samsunghub.app;
 
 import android.os.Bundle;
 import android.view.View;
