@@ -166,11 +166,11 @@ object PdfReportGenerator {
         // Logical Sort Order
         val segmentOrder = listOf(
             "Entry (<10k)",
-            "10k-20k",
-            "20k-30k",
+            "10k-30k",
             "30k-40k",
-            "40k-50k",
-            "Premium (>50k)"
+            "40k-70k",
+            "70k-100k",
+            "Premier (>100k)"
         )
 
         val salesBySegment = salesList.groupBy { it.segment }

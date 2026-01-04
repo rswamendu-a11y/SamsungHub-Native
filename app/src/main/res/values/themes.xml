@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.SamsungHub" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/primaryBlue</item>
+        <item name="colorPrimaryVariant">@color/primaryDark</item>
+        <item name="android:windowBackground">@color/backgroundGrey</item>
+        <item name="android:statusBarColor">@color/primaryDark</item>
+        <item name="android:textColorPrimary">@color/textPrimary</item>
+        <item name="android:textColorSecondary">@color/textSecondary</item>
+    </style>
+</resources>

@@ -42,8 +42,8 @@ class SalesAdapter : ListAdapter<SaleEntry, SalesAdapter.SaleViewHolder>(SaleDif
             tvSegment.text = sale.segment
             tvPrice.text = currencyFormat.format(sale.totalValue)
 
-            // Special Styling for Premium
-            if (sale.segment.contains("Premium") || sale.segment.contains(">50k")) {
+            // Special Styling for Premier
+            if (sale.segment.contains("Premier") || sale.segment.contains(">100k")) {
                 tvSegment.setTextColor(Color.parseColor("#1A237E")) // Dark Blue
             } else {
                 // Reset to secondary text color (approximate, since we can't easily get attr here without context theme lookup)

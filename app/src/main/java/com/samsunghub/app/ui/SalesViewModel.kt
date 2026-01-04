@@ -15,13 +15,12 @@ import com.samsunghub.app.data.AppDatabase
 import com.samsunghub.app.data.SaleEntry
 import com.samsunghub.app.data.SalesRepository
 import com.samsunghub.app.utils.PdfReportGenerator
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-
-data class WeeklyStat(val label: String, val revenue: Double)
 
 class SalesViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -68,7 +67,6 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                 WeeklyStat("Wk 4", 0.0)
             )
 
-            // Map simply for accumulation
             var w1 = 0.0
             var w2 = 0.0
             var w3 = 0.0
@@ -101,18 +99,37 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Set full date (for Tracker date picker)
+    fun setDate(calendar: Calendar) {
+        _selectedDate.value = calendar
+    }
+
+    // Set month only (legacy method, mainly used by old date picker logic, keeping for compat)
     fun setMonth(year: Int, month: Int) {
         val newCal = Calendar.getInstance()
         newCal.set(year, month, 1)
         _selectedDate.value = newCal
     }
 
-    fun generatePdf(context: Context, callback: (Uri?) -> Unit) {
-        val list = salesList.value ?: emptyList()
-        val cal = _selectedDate.value ?: Calendar.getInstance()
-        val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(cal.time)
-
+    fun insertSale(sale: SaleEntry) {
         viewModelScope.launch {
+            repository.insertSale(sale)
+        }
+    }
+
+    // New Safe PDF Generation independent of UI state
+    fun generatePdfForMonth(context: Context, year: Int, month: Int, callback: (Uri?) -> Unit) {
+        viewModelScope.launch {
+            // 1. Fetch data specifically for the requested month
+            val (start, end) = repository.getMonthRange(year, month)
+            // Use .first() to get the current snapshot of the Flow
+            val list = repository.getSalesForRange(start, end).first()
+
+            // 2. Generate PDF
+            val cal = Calendar.getInstance()
+            cal.set(year, month, 1)
+            val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(cal.time)
+
             val uri = PdfReportGenerator.generateMonthlyReport(context, list, monthName)
             callback(uri)
         }
