@@ -16,9 +16,11 @@
         </activity>
 
         <activity
-            android:name=".ui.SalesTrackerActivity"
+            android:name="com.samsunghub.app.ui.SalesTrackerActivity"
             android:label="Sales Tracker"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName=".MainActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>
