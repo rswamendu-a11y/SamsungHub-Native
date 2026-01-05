@@ -76,7 +76,7 @@ class AnalyticsFragment : Fragment() {
             description.isEnabled = false
             legend.isEnabled = false
             xAxis.position = XAxis.XAxisPosition.BOTTOM
-            xAxis.valueFormatter = IndexAxisValueFormatter(labels)
+            xAxis.valueFormatter = IndexAxisValueFormatter(labels as Collection<String>)
             xAxis.granularity = 1f
             xAxis.setDrawGridLines(false)
             axisLeft.valueFormatter = currencyFormatter
