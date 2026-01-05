@@ -22,8 +22,21 @@ class ProfileFragment : Fragment() {
 
     private val viewModel: SalesViewModel by activityViewModels()
 
-    private val restoreLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { performRestore(it) }
+    // FIX: Safely unwrap the intent
+    private val restoreLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data = result.data
+            if (data != null) {
+                // Now 'data' is safe to pass
+                val list = BackupManager.importDatabaseFromExcel(requireContext(), data)
+                if (list != null) {
+                    viewModel.restoreData(list)
+                    Toast.makeText(context, "Database Restored", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "Import Failed", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     override fun onCreateView(
@@ -88,7 +101,11 @@ class ProfileFragment : Fragment() {
         }
 
         view.findViewById<View>(R.id.btnRestore).setOnClickListener {
-            restoreLauncher.launch(arrayOf("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            }
+            restoreLauncher.launch(intent)
         }
 
         view.findViewById<View>(R.id.btnReset).setOnClickListener {
@@ -111,15 +128,6 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun performRestore(uri: Uri) {
-        val list = BackupManager.importFromExcel(requireContext(), uri)
-        if (list != null) {
-            viewModel.restoreData(list)
-            Toast.makeText(context, "Database Restored", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(context, "Import Failed", Toast.LENGTH_SHORT).show()
-        }
-    }
 
     private fun showSetPinDialog(onPinSet: (String) -> Unit) {
         val builder = android.app.AlertDialog.Builder(requireContext())

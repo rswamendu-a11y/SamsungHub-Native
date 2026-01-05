@@ -63,6 +63,11 @@ object BackupManager {
         }
     }
 
+    fun importDatabaseFromExcel(context: Context, data: android.content.Intent): List<SaleEntry>? {
+        val uri = data.data ?: return null
+        return importFromExcel(context, uri)
+    }
+
     fun importFromExcel(context: Context, uri: Uri): List<SaleEntry>? {
         return try {
             val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
