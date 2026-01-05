@@ -15,7 +15,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class SalesAdapter : ListAdapter<SaleEntry, SalesAdapter.SaleViewHolder>(SaleDiffCallback()) {
+class SalesAdapter(private val onClick: (SaleEntry) -> Unit) : ListAdapter<SaleEntry, SalesAdapter.SaleViewHolder>(SaleDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SaleViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -24,7 +24,9 @@ class SalesAdapter : ListAdapter<SaleEntry, SalesAdapter.SaleViewHolder>(SaleDif
     }
 
     override fun onBindViewHolder(holder: SaleViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        val item = getItem(position)
+        holder.bind(item)
+        holder.itemView.setOnClickListener { onClick(item) }
     }
 
     class SaleViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

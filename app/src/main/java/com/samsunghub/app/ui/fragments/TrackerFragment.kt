@@ -29,6 +29,7 @@ class TrackerFragment : Fragment() {
 
     private val viewModel: SalesViewModel by activityViewModels()
     private lateinit var adapter: SalesAdapter
+    private var entryDate: Calendar = Calendar.getInstance()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -47,7 +48,9 @@ class TrackerFragment : Fragment() {
     private fun setupUI(view: View) {
         // 1. RecyclerView
         val rv = view.findViewById<RecyclerView>(R.id.recyclerViewDaily)
-        adapter = SalesAdapter()
+        adapter = SalesAdapter { sale ->
+            EditSaleDialog(sale).show(parentFragmentManager, "EditSale")
+        }
         rv.layoutManager = LinearLayoutManager(context)
         rv.adapter = adapter
 
@@ -57,9 +60,26 @@ class TrackerFragment : Fragment() {
         val spinnerAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, brands)
         spinner.adapter = spinnerAdapter
 
-        // 3. Date Pick
+        // 3. Main Date Pick
         view.findViewById<View>(R.id.btnDatePick).setOnClickListener {
             showDatePicker()
+        }
+
+        // 3b. Entry Date Pick (Local)
+        val tvEntryDate = view.findViewById<TextView>(R.id.tvEntryDate)
+        updateEntryDateText(tvEntryDate)
+        tvEntryDate.setOnClickListener {
+            val dpd = android.app.DatePickerDialog(
+                requireContext(),
+                { _, y, m, d ->
+                    entryDate.set(y, m, d)
+                    updateEntryDateText(tvEntryDate)
+                },
+                entryDate.get(Calendar.YEAR),
+                entryDate.get(Calendar.MONTH),
+                entryDate.get(Calendar.DAY_OF_MONTH)
+            )
+            dpd.show()
         }
 
         // 4. Add Button
@@ -121,14 +141,12 @@ class TrackerFragment : Fragment() {
 
         val qty = qtyStr.toIntOrNull() ?: 1
         val price = priceStr.toDoubleOrNull() ?: 0.0
-        val timestamp = viewModel.selectedDate.value?.timeInMillis ?: System.currentTimeMillis()
+        // Use local entryDate instead of viewModel.selectedDate
+        val timestamp = entryDate.timeInMillis
 
         val sale = SaleEntry.create(timestamp, brand, model, variant, price, qty)
 
-        // We need to access repository to insert.
-        // Best practice: Expose an insert method in ViewModel.
-        // Assuming I'll add `insertSale` to ViewModel in next step.
-        (viewModel as? SalesViewModel)?.insertSale(sale)
+        viewModel.insertSale(sale)
 
         // Clear Fields
         etModel.text.clear()
@@ -137,6 +155,17 @@ class TrackerFragment : Fragment() {
         etQty.setText("1")
 
         Toast.makeText(context, "Added to Queue", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateEntryDateText(tv: TextView) {
+        val fmt = SimpleDateFormat("MMM d", Locale.getDefault())
+        val today = Calendar.getInstance()
+        if (entryDate.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+            entryDate.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)) {
+            tv.text = "Today"
+        } else {
+            tv.text = fmt.format(entryDate.time)
+        }
     }
 
     private fun showDatePicker() {

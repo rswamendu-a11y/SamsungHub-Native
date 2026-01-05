@@ -110,7 +110,7 @@ class AnalyticsFragment : Fragment() {
         }
     }
 
-    private fun setupBrandChart(view: View, stats: Map<String, Double>) {
+    private fun setupBrandChart(view: View, stats: Map<String, Double>, isValue: Boolean) {
         val chart = view.findViewById<HorizontalBarChart>(R.id.chartBrand)
         val sortedStats = stats.toList().sortedByDescending { it.second }
         val entries = sortedStats.mapIndexed { index, pair ->
@@ -118,10 +118,13 @@ class AnalyticsFragment : Fragment() {
         }
 
         val colorTeal = Color.parseColor("#00897B")
-        val dataSet = BarDataSet(entries, "Brand Revenue").apply {
+        val label = if (isValue) "Brand Revenue" else "Brand Volume"
+        val formatter = if (isValue) currencyFormatter else null // Null uses default (simple numbers)
+
+        val dataSet = BarDataSet(entries, label).apply {
             color = colorTeal
             valueTextSize = 12f
-            valueFormatter = currencyFormatter
+            valueFormatter = formatter
         }
 
         val labels = sortedStats.map { it.first }
@@ -134,7 +137,7 @@ class AnalyticsFragment : Fragment() {
             xAxis.granularity = 1f
             xAxis.setDrawGridLines(false)
             xAxis.labelCount = labels.size
-            axisLeft.valueFormatter = currencyFormatter
+            axisLeft.valueFormatter = formatter
             axisLeft.axisMinimum = 0f
             axisRight.isEnabled = false
             animateY(1000)
