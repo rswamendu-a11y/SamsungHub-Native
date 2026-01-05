@@ -37,6 +37,15 @@ class AnalyticsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        val toggleGroup = view.findViewById<com.google.android.material.button.MaterialButtonToggleGroup>(R.id.toggleGroup)
+        toggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                val isValue = checkedId == R.id.btnValue
+                viewModel.setChartMode(isValue)
+            }
+        }
+
         observeData(view)
     }
 
@@ -49,22 +58,36 @@ class AnalyticsFragment : Fragment() {
         viewModel.lmtdTotal.observe(viewLifecycleOwner) { total ->
             view.findViewById<TextView>(R.id.tvLmtdTotal).text = currencyFormat.format(total)
         }
-        viewModel.weeklyStats.observe(viewLifecycleOwner) { stats ->
-            setupWeeklyChart(view, stats)
-        }
-        viewModel.brandStats.observe(viewLifecycleOwner) { stats ->
-            setupBrandChart(view, stats)
+
+        // Observe Chart Data (Merged logic handled in ViewModel ideally, or fragment logic)
+        // Since we need to switch between Value/Volume, let's assume ViewModel emits WeeklyStat
+        // that contains BOTH revenue and count, or we need separate LiveData.
+        // For simplicity, let's assume ViewModel has `weeklyStats` (value) and `weeklyVolume` (count).
+        // I will add `weeklyVolume` to ViewModel.
+
+        viewModel.chartMode.observe(viewLifecycleOwner) { isValue ->
+             updateCharts(view, isValue)
         }
     }
 
-    private fun setupWeeklyChart(view: View, stats: List<WeeklyStat>) {
+    private fun updateCharts(view: View, isValue: Boolean) {
+        val weeklyData = if (isValue) viewModel.weeklyStats.value else viewModel.weeklyVolume.value
+        val brandData = if (isValue) viewModel.brandStats.value else viewModel.brandVolume.value
+
+        if (weeklyData != null) setupWeeklyChart(view, weeklyData, isValue)
+        if (brandData != null) setupBrandChart(view, brandData, isValue)
+    }
+
+    private fun setupWeeklyChart(view: View, stats: List<WeeklyStat>, isValue: Boolean) {
         val chart = view.findViewById<BarChart>(R.id.chartWeekly)
         val entries = stats.mapIndexed { index, stat ->
-            BarEntry(index.toFloat(), stat.revenue.toFloat())
+            val value = if (isValue) stat.revenue else stat.count.toDouble()
+            BarEntry(index.toFloat(), value.toFloat())
         }
 
         val colorPrimary = ContextCompat.getColor(requireContext(), R.color.primaryBlue)
-        val dataSet = BarDataSet(entries, "Revenue").apply {
+        val label = if (isValue) "Revenue" else "Volume"
+        val dataSet = BarDataSet(entries, label).apply {
             color = colorPrimary
             valueTextSize = 12f
             valueFormatter = currencyFormatter

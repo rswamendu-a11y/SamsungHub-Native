@@ -3,7 +3,6 @@ package com.samsunghub.app.ui
 import android.app.Application
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -14,6 +13,7 @@ import androidx.lifecycle.viewModelScope
 import com.samsunghub.app.data.AppDatabase
 import com.samsunghub.app.data.SaleEntry
 import com.samsunghub.app.data.SalesRepository
+import com.samsunghub.app.utils.BackupManager
 import com.samsunghub.app.utils.PdfReportGenerator
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -28,83 +28,85 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedDate = MutableLiveData<Calendar>(Calendar.getInstance())
     val selectedDate: LiveData<Calendar> = _selectedDate
 
+    // Chart Mode: true = Value, false = Volume
+    private val _chartMode = MutableLiveData(true)
+    val chartMode: LiveData<Boolean> = _chartMode
+
     val salesList: LiveData<List<SaleEntry>>
     val mtdTotal: LiveData<Double>
     val lmtdTotal: LiveData<Double>
 
+    // Combined Stats
     val weeklyStats: LiveData<List<WeeklyStat>>
-    val brandStats: LiveData<Map<String, Double>>
+
+    // Separate streams for Fragment consumption based on toggles (or raw data)
+    // To match Fragment logic: viewModel.weeklyVolume, viewModel.brandVolume
+    val weeklyVolume: LiveData<List<WeeklyStat>>
+
+    val brandStats: LiveData<Map<String, Double>> // Revenue
+    val brandVolume: LiveData<Map<String, Double>> // Count (as Double for generic chart logic)
 
     init {
         val dao = AppDatabase.getDatabase(application).salesDao()
         repository = SalesRepository(dao)
 
-        // Main Sales List Source
         salesList = _selectedDate.switchMap { cal ->
             val (start, end) = repository.getMonthRange(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
             repository.getSalesForRange(start, end).asLiveData()
         }
 
-        // MTD Total
-        mtdTotal = salesList.map { list ->
-            list.sumOf { it.totalValue }
-        }
+        mtdTotal = salesList.map { list -> list.sumOf { it.totalValue } }
 
-        // LMTD Total (Comparison)
         lmtdTotal = _selectedDate.switchMap { cal ->
             val (start, end) = repository.getLmtdRange(cal)
-            repository.getSalesForRange(start, end).map { list ->
-                list.sumOf { it.totalValue }
-            }.asLiveData()
+            repository.getSalesForRange(start, end).map { list -> list.sumOf { it.totalValue } }.asLiveData()
         }
 
-        // Weekly Stats Transformation
-        weeklyStats = salesList.map { list ->
-            val stats = mutableListOf(
-                WeeklyStat("Wk 1", 0.0),
-                WeeklyStat("Wk 2", 0.0),
-                WeeklyStat("Wk 3", 0.0),
-                WeeklyStat("Wk 4", 0.0)
-            )
+        weeklyStats = salesList.map { list -> calculateWeeklyStats(list) }
+        weeklyVolume = weeklyStats // Same list, Fragment picks field
 
-            var w1 = 0.0
-            var w2 = 0.0
-            var w3 = 0.0
-            var w4 = 0.0
-
-            val cal = Calendar.getInstance()
-            for (sale in list) {
-                cal.timeInMillis = sale.timestamp
-                val day = cal.get(Calendar.DAY_OF_MONTH)
-                when {
-                    day <= 7 -> w1 += sale.totalValue
-                    day <= 14 -> w2 += sale.totalValue
-                    day <= 21 -> w3 += sale.totalValue
-                    else -> w4 += sale.totalValue
-                }
-            }
-
-            listOf(
-                WeeklyStat("Wk 1", w1),
-                WeeklyStat("Wk 2", w2),
-                WeeklyStat("Wk 3", w3),
-                WeeklyStat("Wk 4", w4)
-            )
-        }
-
-        // Brand Stats Transformation
         brandStats = salesList.map { list ->
-            list.groupBy { it.brand }
-                .mapValues { entry -> entry.value.sumOf { it.totalValue } }
+            list.groupBy { it.brand }.mapValues { it.value.sumOf { s -> s.totalValue } }
+        }
+
+        brandVolume = salesList.map { list ->
+            list.groupBy { it.brand }.mapValues { it.value.sumOf { s -> s.quantity }.toDouble() }
         }
     }
 
-    // Set full date (for Tracker date picker)
+    private fun calculateWeeklyStats(list: List<SaleEntry>): List<WeeklyStat> {
+        var w1r = 0.0; var w1c = 0
+        var w2r = 0.0; var w2c = 0
+        var w3r = 0.0; var w3c = 0
+        var w4r = 0.0; var w4c = 0
+
+        val cal = Calendar.getInstance()
+        for (sale in list) {
+            cal.timeInMillis = sale.timestamp
+            val day = cal.get(Calendar.DAY_OF_MONTH)
+            when {
+                day <= 7 -> { w1r += sale.totalValue; w1c += sale.quantity }
+                day <= 14 -> { w2r += sale.totalValue; w2c += sale.quantity }
+                day <= 21 -> { w3r += sale.totalValue; w3c += sale.quantity }
+                else -> { w4r += sale.totalValue; w4c += sale.quantity }
+            }
+        }
+        return listOf(
+            WeeklyStat("Wk 1", w1r, w1c),
+            WeeklyStat("Wk 2", w2r, w2c),
+            WeeklyStat("Wk 3", w3r, w3c),
+            WeeklyStat("Wk 4", w4r, w4c)
+        )
+    }
+
+    fun setChartMode(isValue: Boolean) {
+        _chartMode.value = isValue
+    }
+
     fun setDate(calendar: Calendar) {
         _selectedDate.value = calendar
     }
 
-    // Set month only (legacy method, mainly used by old date picker logic, keeping for compat)
     fun setMonth(year: Int, month: Int) {
         val newCal = Calendar.getInstance()
         newCal.set(year, month, 1)
@@ -112,26 +114,50 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun insertSale(sale: SaleEntry) {
+        viewModelScope.launch { repository.insertSale(sale) }
+    }
+
+    fun updateSale(sale: SaleEntry) {
+        viewModelScope.launch { repository.updateSale(sale) }
+    }
+
+    fun deleteSale(sale: SaleEntry) {
+        viewModelScope.launch { repository.deleteSale(sale) }
+    }
+
+    fun deleteAllData() {
+        viewModelScope.launch { repository.deleteAll() }
+    }
+
+    fun generatePdfForMonth(context: Context, year: Int, month: Int, callback: (Uri?) -> Unit) {
         viewModelScope.launch {
-            repository.insertSale(sale)
+            val (start, end) = repository.getMonthRange(year, month)
+            val list = repository.getSalesForRange(start, end).first()
+            val cal = Calendar.getInstance().apply { set(year, month, 1) }
+            val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(cal.time)
+
+            // Fetch outlet info
+            val prefs = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+            val outletName = prefs.getString("outlet_name", "M/S EXCLUSIVE") ?: "M/S EXCLUSIVE"
+            val secName = prefs.getString("sec_name", "") ?: ""
+
+            val uri = PdfReportGenerator.generateMonthlyReport(context, list, monthName, outletName, secName)
+            callback(uri)
         }
     }
 
-    // New Safe PDF Generation independent of UI state
-    fun generatePdfForMonth(context: Context, year: Int, month: Int, callback: (Uri?) -> Unit) {
+    fun exportBackup(context: Context, callback: (Boolean) -> Unit) {
         viewModelScope.launch {
-            // 1. Fetch data specifically for the requested month
-            val (start, end) = repository.getMonthRange(year, month)
-            // Use .first() to get the current snapshot of the Flow
-            val list = repository.getSalesForRange(start, end).first()
+            val list = repository.getAllSalesSync()
+            val result = BackupManager.exportToExcel(context, list)
+            callback(result)
+        }
+    }
 
-            // 2. Generate PDF
-            val cal = Calendar.getInstance()
-            cal.set(year, month, 1)
-            val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(cal.time)
-
-            val uri = PdfReportGenerator.generateMonthlyReport(context, list, monthName)
-            callback(uri)
+    fun restoreData(list: List<SaleEntry>) {
+        viewModelScope.launch {
+            repository.deleteAll()
+            list.forEach { repository.insertSale(it) }
         }
     }
 }

@@ -7,7 +7,7 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.samsunghub.app.R
 import com.samsunghub.app.ui.fragments.AnalyticsFragment
-import com.samsunghub.app.ui.fragments.IncentiveFragment
+import com.samsunghub.app.ui.fragments.ReportsFragment
 import com.samsunghub.app.ui.fragments.ProfileFragment
 import com.samsunghub.app.ui.fragments.TrackerFragment
 
@@ -30,7 +30,7 @@ class SalesTrackerActivity : AppCompatActivity() {
             when (item.itemId) {
                 R.id.nav_tracker -> loadFragment(TrackerFragment())
                 R.id.nav_analytics -> loadFragment(AnalyticsFragment())
-                R.id.nav_incentive -> loadFragment(IncentiveFragment())
+                R.id.nav_reports -> loadFragment(ReportsFragment())
                 R.id.nav_profile -> loadFragment(ProfileFragment())
                 else -> false
             }

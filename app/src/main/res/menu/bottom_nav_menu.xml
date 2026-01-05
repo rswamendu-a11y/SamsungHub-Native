@@ -9,9 +9,9 @@
         android:icon="@android:drawable/ic_menu_sort_by_size"
         android:title="Analytics" />
     <item
-        android:id="@+id/nav_incentive"
-        android:icon="@android:drawable/ic_menu_help"
-        android:title="Incentive" />
+        android:id="@+id/nav_reports"
+        android:icon="@android:drawable/ic_menu_agenda"
+        android:title="Reports" />
     <item
         android:id="@+id/nav_profile"
         android:icon="@android:drawable/ic_menu_my_calendar"
