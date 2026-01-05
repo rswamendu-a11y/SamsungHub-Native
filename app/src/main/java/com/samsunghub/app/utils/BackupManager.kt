@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
+import android.widget.Toast
 import com.samsunghub.app.data.SaleEntry
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
@@ -63,8 +64,12 @@ object BackupManager {
         }
     }
 
-    fun importDatabaseFromExcel(context: Context, data: android.content.Intent): List<SaleEntry>? {
-        val uri = data.data ?: return null
+    fun importDatabaseFromExcel(context: Context, data: android.content.Intent?): List<SaleEntry>? {
+        if (data == null || data.data == null) {
+            Toast.makeText(context, "Import failed: No file selected", Toast.LENGTH_SHORT).show()
+            return null
+        }
+        val uri = data.data!!
         return importFromExcel(context, uri)
     }
 
