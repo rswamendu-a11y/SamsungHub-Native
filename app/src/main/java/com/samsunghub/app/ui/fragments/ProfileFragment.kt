@@ -22,28 +22,15 @@ class ProfileFragment : Fragment() {
 
     private val viewModel: SalesViewModel by activityViewModels()
 
-    // Fix for Null-Safety Error
+    // NUCLEAR FIX: Use Elvis Operator to force non-null type
     private val restoreLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            // Explicitly capture the nullable Intent
-            val data: android.content.Intent? = result.data
+            // This line forces 'safeData' to be a NON-NULL Intent.
+            // If result.data is null, it returns immediately, preventing the crash/error.
+            val safeData = result.data ?: return@registerForActivityResult
 
-            // Check if not null before passing
-            if (data != null) {
-                // Now safe to pass. Assuming BackupManager returns list or we handle logic inside.
-                // The snippet provided by user only called importDatabaseFromExcel.
-                // However, my BackupManager implementation returns a list that I need to restore.
-                // I will add the logic back to restore data.
-                val list = com.samsunghub.app.utils.BackupManager.importDatabaseFromExcel(requireContext(), data)
-                if (list != null) {
-                    viewModel.restoreData(list)
-                    android.widget.Toast.makeText(requireContext(), "Database Restored", android.widget.Toast.LENGTH_SHORT).show()
-                } else {
-                    android.widget.Toast.makeText(requireContext(), "Import Failed", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            } else {
-                android.widget.Toast.makeText(requireContext(), "Restore failed: No file selected", android.widget.Toast.LENGTH_SHORT).show()
-            }
+            // Now we pass 'safeData' which is guaranteed to be non-null
+            com.samsunghub.app.utils.BackupManager.importDatabaseFromExcel(requireContext(), safeData)
         }
     }
 

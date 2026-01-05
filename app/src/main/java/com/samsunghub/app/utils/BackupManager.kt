@@ -6,7 +6,12 @@ import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
+import com.samsunghub.app.data.AppDatabase
 import com.samsunghub.app.data.SaleEntry
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.InputStream
@@ -64,13 +69,30 @@ object BackupManager {
         }
     }
 
-    fun importDatabaseFromExcel(context: Context, data: android.content.Intent?): List<SaleEntry>? {
+    fun importDatabaseFromExcel(context: Context, data: android.content.Intent?) {
         if (data == null || data.data == null) {
             Toast.makeText(context, "Import failed: No file selected", Toast.LENGTH_SHORT).show()
-            return null
+            return
         }
         val uri = data.data!!
-        return importFromExcel(context, uri)
+
+        GlobalScope.launch(Dispatchers.IO) {
+            val list = importFromExcel(context, uri)
+            if (list != null) {
+                val db = AppDatabase.getDatabase(context)
+                val dao = db.salesDao()
+                dao.deleteAllSales()
+                list.forEach { dao.insertSale(it) }
+
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Database Restored Successfully", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Import Failed: Invalid File", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     fun importFromExcel(context: Context, uri: Uri): List<SaleEntry>? {
