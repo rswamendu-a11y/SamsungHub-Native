@@ -53,40 +53,29 @@ class ProfileFragment : Fragment() {
         }
 
         // Security Logic
-        val btnSetPin = view.findViewById<MaterialButton>(R.id.btnSetPin)
-        val btnRemovePin = view.findViewById<MaterialButton>(R.id.btnRemovePin)
-
-        fun updateSecurityUI() {
+        view.findViewById<View>(R.id.btnSetPin).setOnClickListener {
             val hasPin = !prefs.getString("app_pin", null).isNullOrEmpty()
             if (hasPin) {
-                btnSetPin.visibility = View.GONE
-                btnRemovePin.visibility = View.VISIBLE
+                 android.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Manage PIN")
+                    .setItems(arrayOf("Change PIN", "Remove PIN")) { _, which ->
+                        if (which == 0) {
+                            showSetPinDialog { pin ->
+                                prefs.edit().putString("app_pin", pin).apply()
+                                Toast.makeText(context, "PIN Updated", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            prefs.edit().remove("app_pin").apply()
+                            Toast.makeText(context, "PIN Removed", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    .show()
             } else {
-                btnSetPin.visibility = View.VISIBLE
-                btnRemovePin.visibility = View.GONE
-            }
-        }
-        updateSecurityUI()
-
-        btnSetPin.setOnClickListener {
-            showSetPinDialog { pin ->
-                prefs.edit().putString("app_pin", pin).apply()
-                updateSecurityUI()
-                Toast.makeText(context, "PIN Set Successfully", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        btnRemovePin.setOnClickListener {
-            android.app.AlertDialog.Builder(requireContext())
-                .setTitle("Remove PIN")
-                .setMessage("Are you sure you want to remove security?")
-                .setPositiveButton("REMOVE") { _, _ ->
-                    prefs.edit().remove("app_pin").apply()
-                    updateSecurityUI()
-                    Toast.makeText(context, "PIN Removed", Toast.LENGTH_SHORT).show()
+                showSetPinDialog { pin ->
+                    prefs.edit().putString("app_pin", pin).apply()
+                    Toast.makeText(context, "PIN Set Successfully", Toast.LENGTH_SHORT).show()
                 }
-                .setNegativeButton("Cancel", null)
-                .show()
+            }
         }
 
         view.findViewById<View>(R.id.btnBackup).setOnClickListener {
@@ -103,14 +92,19 @@ class ProfileFragment : Fragment() {
         }
 
         view.findViewById<View>(R.id.btnReset).setOnClickListener {
-            // Confirm Dialog? For speed: just do it (or standard warning)
-            // Ideally a dialog.
             android.app.AlertDialog.Builder(requireContext())
                 .setTitle("Factory Reset")
-                .setMessage("Delete ALL data? This cannot be undone.")
+                .setMessage("Delete ALL data and Settings? This cannot be undone.")
                 .setPositiveButton("DELETE") { _, _ ->
                     viewModel.deleteAllData()
-                    Toast.makeText(context, "Data Reset", Toast.LENGTH_SHORT).show()
+                    prefs.edit().clear().apply() // Clear all prefs including PIN
+                    Toast.makeText(context, "Factory Reset Complete", Toast.LENGTH_SHORT).show()
+
+                    // Restart App
+                    val intent = requireContext().packageManager.getLaunchIntentForPackage(requireContext().packageName)
+                    intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    startActivity(intent)
+                    Runtime.getRuntime().exit(0)
                 }
                 .setNegativeButton("Cancel", null)
                 .show()

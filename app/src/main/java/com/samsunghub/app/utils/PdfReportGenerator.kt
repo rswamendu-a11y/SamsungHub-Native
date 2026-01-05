@@ -155,7 +155,7 @@ object PdfReportGenerator {
         for (i in 1..18) widths[i] = 2.6f // Q, V columns (Increased width)
         widths[19] = 10f // Logs
 
-        val table = Table(UnitValue.createPercentArray(20)).useAllAvailableWidth()
+        val table = Table(UnitValue.createPercentArray(widths)).useAllAvailableWidth()
 
         // --- Header Row 1 ---
         // Date (Rowspan 2)

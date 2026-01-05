@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:background="@color/primaryBlue"
+    android:background="@color/white"
     android:padding="24dp">
 
     <ImageView
@@ -18,21 +18,23 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Samsung Hub"
-        android:textColor="@color/white"
+        android:textColor="@color/primaryBlue"
         android:textSize="24sp"
         android:textStyle="bold"
         android:layout_marginBottom="32dp"/>
 
     <TextView
+        android:id="@+id/tvEnterPin"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Enter PIN"
-        android:textColor="@color/white"
+        android:textColor="@color/primaryBlue"
         android:textSize="18sp"
         android:layout_marginBottom="16dp"/>
 
     <!-- PIN Display Dots -->
     <LinearLayout
+        android:id="@+id/dotsContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -42,25 +44,25 @@
             android:id="@+id/dot1"
             android:layout_width="16dp"
             android:layout_height="16dp"
-            android:background="@drawable/pin_dot_empty"
+            android:background="@drawable/pin_dot_empty_blue"
             android:layout_margin="8dp"/>
         <View
             android:id="@+id/dot2"
             android:layout_width="16dp"
             android:layout_height="16dp"
-            android:background="@drawable/pin_dot_empty"
+            android:background="@drawable/pin_dot_empty_blue"
             android:layout_margin="8dp"/>
         <View
             android:id="@+id/dot3"
             android:layout_width="16dp"
             android:layout_height="16dp"
-            android:background="@drawable/pin_dot_empty"
+            android:background="@drawable/pin_dot_empty_blue"
             android:layout_margin="8dp"/>
         <View
             android:id="@+id/dot4"
             android:layout_width="16dp"
             android:layout_height="16dp"
-            android:background="@drawable/pin_dot_empty"
+            android:background="@drawable/pin_dot_empty_blue"
             android:layout_margin="8dp"/>
     </LinearLayout>
 

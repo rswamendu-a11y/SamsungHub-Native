@@ -84,9 +84,9 @@ class LoginActivity : AppCompatActivity() {
     private fun updateDots() {
         for (i in 0 until 4) {
             if (i < enteredPin.length) {
-                dots[i].setBackgroundResource(R.drawable.pin_dot_filled)
+                dots[i].setBackgroundResource(R.drawable.pin_dot_filled_blue)
             } else {
-                dots[i].setBackgroundResource(R.drawable.pin_dot_empty)
+                dots[i].setBackgroundResource(R.drawable.pin_dot_empty_blue)
             }
         }
     }
@@ -95,6 +95,22 @@ class LoginActivity : AppCompatActivity() {
         if (enteredPin.toString() == savedPin) {
             startMainActivity()
         } else {
+            // Shake Animation
+            val dotsContainer = findViewById<View>(R.id.dotsContainer)
+            dotsContainer.animate()
+                .translationX(20f)
+                .setDuration(50)
+                .withEndAction {
+                    dotsContainer.animate()
+                        .translationX(-20f)
+                        .setDuration(50)
+                        .withEndAction {
+                            dotsContainer.animate().translationX(0f).setDuration(50).start()
+                        }
+                        .start()
+                }
+                .start()
+
             Toast.makeText(this, "Incorrect PIN", Toast.LENGTH_SHORT).show()
             enteredPin.setLength(0)
             updateDots()
