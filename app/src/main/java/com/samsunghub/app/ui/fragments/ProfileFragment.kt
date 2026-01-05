@@ -22,19 +22,27 @@ class ProfileFragment : Fragment() {
 
     private val viewModel: SalesViewModel by activityViewModels()
 
-    // FIX: Safely unwrap the intent
-    private val restoreLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val data = result.data
+    // Fix for Null-Safety Error
+    private val restoreLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            // Explicitly capture the nullable Intent
+            val data: android.content.Intent? = result.data
+
+            // Check if not null before passing
             if (data != null) {
-                // Now 'data' is safe to pass
-                val list = BackupManager.importDatabaseFromExcel(requireContext(), data)
+                // Now safe to pass. Assuming BackupManager returns list or we handle logic inside.
+                // The snippet provided by user only called importDatabaseFromExcel.
+                // However, my BackupManager implementation returns a list that I need to restore.
+                // I will add the logic back to restore data.
+                val list = com.samsunghub.app.utils.BackupManager.importDatabaseFromExcel(requireContext(), data)
                 if (list != null) {
                     viewModel.restoreData(list)
-                    Toast.makeText(context, "Database Restored", Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(requireContext(), "Database Restored", android.widget.Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(context, "Import Failed", Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(requireContext(), "Import Failed", android.widget.Toast.LENGTH_SHORT).show()
                 }
+            } else {
+                android.widget.Toast.makeText(requireContext(), "Restore failed: No file selected", android.widget.Toast.LENGTH_SHORT).show()
             }
         }
     }
