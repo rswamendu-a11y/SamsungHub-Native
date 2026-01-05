@@ -52,6 +52,43 @@ class ProfileFragment : Fragment() {
             Toast.makeText(context, "Profile Saved", Toast.LENGTH_SHORT).show()
         }
 
+        // Security Logic
+        val btnSetPin = view.findViewById<MaterialButton>(R.id.btnSetPin)
+        val btnRemovePin = view.findViewById<MaterialButton>(R.id.btnRemovePin)
+
+        fun updateSecurityUI() {
+            val hasPin = !prefs.getString("app_pin", null).isNullOrEmpty()
+            if (hasPin) {
+                btnSetPin.visibility = View.GONE
+                btnRemovePin.visibility = View.VISIBLE
+            } else {
+                btnSetPin.visibility = View.VISIBLE
+                btnRemovePin.visibility = View.GONE
+            }
+        }
+        updateSecurityUI()
+
+        btnSetPin.setOnClickListener {
+            showSetPinDialog { pin ->
+                prefs.edit().putString("app_pin", pin).apply()
+                updateSecurityUI()
+                Toast.makeText(context, "PIN Set Successfully", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnRemovePin.setOnClickListener {
+            android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Remove PIN")
+                .setMessage("Are you sure you want to remove security?")
+                .setPositiveButton("REMOVE") { _, _ ->
+                    prefs.edit().remove("app_pin").apply()
+                    updateSecurityUI()
+                    Toast.makeText(context, "PIN Removed", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+
         view.findViewById<View>(R.id.btnBackup).setOnClickListener {
             // Backup needs list. We can ask VM for all sales.
             // Assuming VM has function or we add one.
@@ -88,5 +125,39 @@ class ProfileFragment : Fragment() {
         } else {
             Toast.makeText(context, "Import Failed", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun showSetPinDialog(onPinSet: (String) -> Unit) {
+        val builder = android.app.AlertDialog.Builder(requireContext())
+        builder.setTitle("Set 4-Digit PIN")
+
+        val input = EditText(requireContext())
+        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        input.filters = arrayOf(android.text.InputFilter.LengthFilter(4))
+        input.gravity = android.view.Gravity.CENTER
+        input.letterSpacing = 0.5f
+
+        val container = android.widget.FrameLayout(requireContext())
+        val params = android.widget.FrameLayout.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        params.leftMargin = 50
+        params.rightMargin = 50
+        input.layoutParams = params
+        container.addView(input)
+
+        builder.setView(container)
+
+        builder.setPositiveButton("SET") { _, _ ->
+            val pin = input.text.toString()
+            if (pin.length == 4) {
+                onPinSet(pin)
+            } else {
+                Toast.makeText(context, "PIN must be 4 digits", Toast.LENGTH_SHORT).show()
+            }
+        }
+        builder.setNegativeButton("Cancel", null)
+        builder.show()
     }
 }

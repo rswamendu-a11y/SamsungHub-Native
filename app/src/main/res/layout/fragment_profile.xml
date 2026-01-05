@@ -60,7 +60,38 @@
         android:background="#E0E0E0"
         android:layout_marginVertical="24dp"/>
 
-    <!-- Security & Backup -->
+    <!-- Security -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Security"
+        android:textStyle="bold"
+        android:textColor="@color/textSecondary"
+        android:layout_marginBottom="8dp"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSetPin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Set PIN"
+        android:backgroundTint="@color/primaryBlue"
+        android:visibility="gone"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnRemovePin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Remove PIN"
+        android:backgroundTint="@color/textRed"
+        android:visibility="gone"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#E0E0E0"
+        android:layout_marginVertical="24dp"/>
+
+    <!-- Backup -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

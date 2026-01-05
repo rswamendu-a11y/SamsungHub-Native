@@ -151,35 +151,35 @@ object PdfReportGenerator {
         // Define column widths: Date(1) + 8 Brands * 2 (Q,V) + Total(Q,V) + Logs(3) = 1 + 16 + 2 + 3 = 22 parts
         // Let's approximate percentages
         val widths = FloatArray(20)
-        widths[0] = 5f // Date
-        for (i in 1..18) widths[i] = 2.5f // Q, V columns
+        widths[0] = 3f // Date (Reduced width for more space)
+        for (i in 1..18) widths[i] = 2.6f // Q, V columns (Increased width)
         widths[19] = 10f // Logs
 
         val table = Table(UnitValue.createPercentArray(20)).useAllAvailableWidth()
 
         // --- Header Row 1 ---
         // Date (Rowspan 2)
-        table.addCell(Cell(2, 1).add(Paragraph("Date").setFontSize(7f).setBold())
+        table.addCell(Cell(2, 1).add(Paragraph("Date").setFontSize(8f).setBold())
             .setBackgroundColor(HEADER_BG_COLOR).setFontColor(HEADER_TEXT_COLOR).setTextAlignment(TextAlignment.CENTER))
 
         // Brands (Colspan 2)
         brands.forEach { brand ->
-            table.addCell(Cell(1, 2).add(Paragraph(brand).setFontSize(7f).setBold())
+            table.addCell(Cell(1, 2).add(Paragraph(brand).setFontSize(8f).setBold())
                 .setBackgroundColor(HEADER_BG_COLOR).setFontColor(HEADER_TEXT_COLOR).setTextAlignment(TextAlignment.CENTER))
         }
         // Total (Colspan 2)
-        table.addCell(Cell(1, 2).add(Paragraph("TOTAL").setFontSize(7f).setBold())
+        table.addCell(Cell(1, 2).add(Paragraph("TOTAL").setFontSize(8f).setBold())
             .setBackgroundColor(HEADER_BG_COLOR).setFontColor(HEADER_TEXT_COLOR).setTextAlignment(TextAlignment.CENTER))
 
         // Logs (Rowspan 2)
-        table.addCell(Cell(2, 1).add(Paragraph("Logs").setFontSize(7f).setBold())
+        table.addCell(Cell(2, 1).add(Paragraph("Logs").setFontSize(8f).setBold())
             .setBackgroundColor(HEADER_BG_COLOR).setFontColor(HEADER_TEXT_COLOR).setTextAlignment(TextAlignment.CENTER))
 
         // --- Header Row 2 ---
         // Q | V sub-headers
         for (i in 0..brands.size) { // 8 brands + 1 total = 9 pairs
-            table.addCell(Cell().add(Paragraph("Q").setFontSize(6f).setBold()).setBackgroundColor(ColorConstants.LIGHT_GRAY).setTextAlignment(TextAlignment.CENTER))
-            table.addCell(Cell().add(Paragraph("V").setFontSize(6f).setBold()).setBackgroundColor(ColorConstants.LIGHT_GRAY).setTextAlignment(TextAlignment.CENTER))
+            table.addCell(Cell().add(Paragraph("Q").setFontSize(8f).setBold()).setBackgroundColor(ColorConstants.LIGHT_GRAY).setTextAlignment(TextAlignment.CENTER))
+            table.addCell(Cell().add(Paragraph("V").setFontSize(8f).setBold()).setBackgroundColor(ColorConstants.LIGHT_GRAY).setTextAlignment(TextAlignment.CENTER))
         }
 
         // --- Data Processing ---
@@ -200,7 +200,7 @@ object PdfReportGenerator {
             val dailySales = salesByDate[dateStr] ?: emptyList()
 
             // Date Cell
-            addCell(table, dateStr.substring(0, 5), textSize = 6f) // dd-MM
+            addCell(table, dateStr.substring(0, 5), textSize = 9f) // dd-MM
 
             var dailyTotalQty = 0
             var dailyTotalVal = 0.0
@@ -221,37 +221,37 @@ object PdfReportGenerator {
                 colTotalVal[index] += value
 
                 // Qty Cell
-                addCell(table, if (qty > 0) qty.toString() else "-", textSize = 6f, align = TextAlignment.CENTER)
+                addCell(table, if (qty > 0) qty.toString() else "-", textSize = 9f, align = TextAlignment.CENTER)
                 // Value Cell
-                addCell(table, if (value > 0) formatValueSmall(value) else "-", textSize = 6f, align = TextAlignment.CENTER)
+                addCell(table, if (value > 0) formatValueSmall(value) else "-", textSize = 9f, align = TextAlignment.CENTER)
             }
 
             // Daily Total Columns
             colTotalQty[brands.size] += dailyTotalQty
             colTotalVal[brands.size] += dailyTotalVal
 
-            addCell(table, dailyTotalQty.toString(), isBold = true, textSize = 6f, align = TextAlignment.CENTER)
-            addCell(table, formatValueSmall(dailyTotalVal), isBold = true, textSize = 6f, align = TextAlignment.CENTER)
+            addCell(table, dailyTotalQty.toString(), isBold = true, textSize = 9f, align = TextAlignment.CENTER)
+            addCell(table, formatValueSmall(dailyTotalVal), isBold = true, textSize = 9f, align = TextAlignment.CENTER)
 
             // Logs Cell
             val logText = dailySales.joinToString(", ") {
                 "${it.brand} ${it.model} ${it.variant}"
             }
-            addCell(table, logText, textSize = 5f, align = TextAlignment.LEFT)
+            addCell(table, logText, textSize = 7f, align = TextAlignment.LEFT)
         }
 
         // --- Grand Total Row ---
-        addCell(table, "TOTAL", isBold = true, textSize = 6f)
+        addCell(table, "TOTAL", isBold = true, textSize = 9f)
         brands.forEachIndexed { index, _ ->
-            addCell(table, colTotalQty[index].toString(), isBold = true, textSize = 6f, align = TextAlignment.CENTER)
-            addCell(table, formatValueSmall(colTotalVal[index]), isBold = true, textSize = 6f, align = TextAlignment.CENTER)
+            addCell(table, colTotalQty[index].toString(), isBold = true, textSize = 9f, align = TextAlignment.CENTER)
+            addCell(table, formatValueSmall(colTotalVal[index]), isBold = true, textSize = 9f, align = TextAlignment.CENTER)
         }
         // Total of Totals
-        addCell(table, colTotalQty[brands.size].toString(), isBold = true, textSize = 6f, align = TextAlignment.CENTER)
-        addCell(table, formatValueSmall(colTotalVal[brands.size]), isBold = true, textSize = 6f, align = TextAlignment.CENTER)
+        addCell(table, colTotalQty[brands.size].toString(), isBold = true, textSize = 9f, align = TextAlignment.CENTER)
+        addCell(table, formatValueSmall(colTotalVal[brands.size]), isBold = true, textSize = 9f, align = TextAlignment.CENTER)
 
         // Empty Log footer
-        addCell(table, "", textSize = 6f)
+        addCell(table, "", textSize = 9f)
 
         document.add(table)
     }
@@ -293,45 +293,47 @@ object PdfReportGenerator {
         document.add(table)
     }
 
-    // --- 3. SEGMENT ANALYSIS ---
+    // --- 3. SEGMENT ANALYSIS (GRID) ---
     private fun drawSegmentAnalysis(document: Document, salesList: List<SaleEntry>) {
-        addSectionTitle(document, "Price Segment Analysis")
+        addSectionTitle(document, "Price Segment Analysis (Brand-Wise)")
 
-        val table = Table(UnitValue.createPercentArray(floatArrayOf(40f, 40f, 20f)))
-            .useAllAvailableWidth()
+        // 9 Columns: Brand + 8 Ranges
+        val table = Table(UnitValue.createPercentArray(9)).useAllAvailableWidth()
 
-        listOf("Price Segment", "Brand", "Units Sold").forEach { addCell(table, it, isHeader = true) }
+        // Headers
+        val headers = listOf("Brand", "<10K", "10-15K", "15-20K", "20-30K", "30-40K", "40-70K", "70-100K", ">100K")
+        headers.forEach { addCell(table, it, isHeader = true, textSize = 8f) }
 
-        val segmentOrder = listOf(
-            "Entry (<10k)", "10k-30k", "30k-40k", "40k-70k", "70k-100k", "Premier (>100k)"
-        )
+        val brands = listOf("Samsung", "Apple", "Realme", "Oppo", "Vivo", "Xiaomi", "Moto", "Other")
+        val segments = listOf("<10K", "10K - 15K", "15K - 20K", "20K - 30K", "30K - 40K", "40K - 70K", "70K - 100K", ">100K")
 
-        val salesBySegment = salesList.groupBy { it.segment }
-
-        // Ordered segments
-        for (segmentName in segmentOrder) {
-            processSegment(table, segmentName, salesBySegment[segmentName])
+        // Recalculate segments on the fly to ensure accuracy with new ranges
+        val salesWithSegments = salesList.map { sale ->
+             // Determine segment using current SegmentCalculator logic (which matches headers)
+             val segment = com.samsunghub.app.data.SegmentCalculator.getSegment(sale.totalValue / sale.quantity)
+             sale to segment
         }
 
-        // Other segments
-        val knownSegments = segmentOrder.toSet()
-        val otherSegments = salesBySegment.keys.filter { !knownSegments.contains(it) }
-        for (segmentName in otherSegments) {
-            processSegment(table, segmentName, salesBySegment[segmentName])
+        for (brand in brands) {
+            // Brand Column
+            addCell(table, brand, isBold = true, textSize = 8f)
+
+            for (segment in segments) {
+                // Filter: Match brand AND segment
+                val count = salesWithSegments.count { (sale, seg) ->
+                     val saleBrand = sale.brand
+                     val matchBrand = if (brand == "Other") saleBrand !in brands.subList(0, 7)
+                                      else saleBrand.equals(brand, ignoreCase = true) || (brand == "Moto" && saleBrand == "Motorola")
+
+                     matchBrand && seg == segment
+                }
+
+                val display = if (count > 0) count.toString() else "-"
+                addCell(table, display, textSize = 8f, align = TextAlignment.CENTER)
+            }
         }
 
         document.add(table)
-    }
-
-    private fun processSegment(table: Table, segmentName: String, salesInSegment: List<SaleEntry>?) {
-        if (!salesInSegment.isNullOrEmpty()) {
-            val salesByBrand = salesInSegment.groupBy { it.brand }
-            for ((brand, sales) in salesByBrand) {
-                addCell(table, segmentName)
-                addCell(table, brand)
-                addCell(table, sales.sumOf { it.quantity }.toString())
-            }
-        }
     }
 
     // --- 4. TRANSACTION LOG ---
