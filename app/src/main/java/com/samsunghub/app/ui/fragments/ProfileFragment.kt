@@ -22,15 +22,16 @@ class ProfileFragment : Fragment() {
 
     private val viewModel: SalesViewModel by activityViewModels()
 
-    // NUCLEAR FIX: Use Elvis Operator to force non-null type
     private val restoreLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            // This line forces 'safeData' to be a NON-NULL Intent.
-            // If result.data is null, it returns immediately, preventing the crash/error.
-            val safeData = result.data ?: return@registerForActivityResult
+        // Check 1: Is the result OK?
+        // Check 2: Is the data NOT null?
+        if (result.resultCode == android.app.Activity.RESULT_OK && result.data != null) {
 
-            // Now we pass 'safeData' which is guaranteed to be non-null
-            com.samsunghub.app.utils.BackupManager.importDatabaseFromExcel(requireContext(), safeData)
+            // THE FIX: The "!!" characters below force the compiler to treat it as Non-Null.
+            com.samsunghub.app.utils.BackupManager.importDatabaseFromExcel(requireContext(), result.data!!)
+
+        } else {
+             android.widget.Toast.makeText(requireContext(), "Action Cancelled", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
