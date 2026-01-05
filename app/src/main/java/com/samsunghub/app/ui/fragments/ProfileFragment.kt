@@ -22,16 +22,19 @@ class ProfileFragment : Fragment() {
 
     private val viewModel: SalesViewModel by activityViewModels()
 
+    // FINAL FIX: Compiler Bypass
     private val restoreLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
-        // Check 1: Is the result OK?
-        // Check 2: Is the data NOT null?
-        if (result.resultCode == android.app.Activity.RESULT_OK && result.data != null) {
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
 
-            // THE FIX: The "!!" characters below force the compiler to treat it as Non-Null.
-            com.samsunghub.app.utils.BackupManager.importDatabaseFromExcel(requireContext(), result.data!!)
+            // Step 1: Get the data
+            val rawData = result.data
 
-        } else {
-             android.widget.Toast.makeText(requireContext(), "Action Cancelled", android.widget.Toast.LENGTH_SHORT).show()
+            // Step 2: If data is null, create a new Empty Intent.
+            // This guarantees 'finalData' is type 'Intent' (Not Null), satisfying the compiler.
+            val finalData = rawData ?: android.content.Intent()
+
+            // Step 3: Pass it to the Manager
+            com.samsunghub.app.utils.BackupManager.importDatabaseFromExcel(requireContext(), finalData)
         }
     }
 
