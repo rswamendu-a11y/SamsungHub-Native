@@ -57,7 +57,7 @@
         android:id="@+id/btnMaster"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="MASTER REPORT (Combined)"
+        android:text="Detailed Log (Super Matrix)"
         android:backgroundTint="@color/textGreen"/>
 
 </LinearLayout>

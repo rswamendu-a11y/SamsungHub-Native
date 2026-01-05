@@ -143,17 +143,46 @@ object PdfReportGenerator {
         document.add(paragraph)
     }
 
-    // --- 1. MATRIX TABLE (Landscape) ---
+    // --- 1. SUPER MATRIX TABLE (Landscape) ---
     private fun drawMatrixTable(document: Document, salesList: List<SaleEntry>) {
-        val table = Table(UnitValue.createPercentArray(floatArrayOf(10f, 10f, 10f, 10f, 10f, 10f, 10f, 10f, 10f, 10f)))
-            .useAllAvailableWidth()
+        // Brands list
+        val brands = listOf("Samsung", "Apple", "Realme", "Oppo", "Vivo", "Xiaomi", "Moto", "Other")
 
-        val brands = listOf("Samsung", "Apple", "Oppo", "Vivo", "Realme", "Xiaomi", "Moto", "Other")
+        // Define column widths: Date(1) + 8 Brands * 2 (Q,V) + Total(Q,V) + Logs(3) = 1 + 16 + 2 + 3 = 22 parts
+        // Let's approximate percentages
+        val widths = FloatArray(20)
+        widths[0] = 5f // Date
+        for (i in 1..18) widths[i] = 2.5f // Q, V columns
+        widths[19] = 10f // Logs
 
-        addCell(table, "Date", isHeader = true)
-        brands.forEach { addCell(table, it, isHeader = true) }
-        addCell(table, "TOTAL", isHeader = true)
+        val table = Table(UnitValue.createPercentArray(20)).useAllAvailableWidth()
 
+        // --- Header Row 1 ---
+        // Date (Rowspan 2)
+        table.addCell(Cell(2, 1).add(Paragraph("Date").setFontSize(7f).setBold())
+            .setBackgroundColor(HEADER_BG_COLOR).setFontColor(HEADER_TEXT_COLOR).setTextAlignment(TextAlignment.CENTER))
+
+        // Brands (Colspan 2)
+        brands.forEach { brand ->
+            table.addCell(Cell(1, 2).add(Paragraph(brand).setFontSize(7f).setBold())
+                .setBackgroundColor(HEADER_BG_COLOR).setFontColor(HEADER_TEXT_COLOR).setTextAlignment(TextAlignment.CENTER))
+        }
+        // Total (Colspan 2)
+        table.addCell(Cell(1, 2).add(Paragraph("TOTAL").setFontSize(7f).setBold())
+            .setBackgroundColor(HEADER_BG_COLOR).setFontColor(HEADER_TEXT_COLOR).setTextAlignment(TextAlignment.CENTER))
+
+        // Logs (Rowspan 2)
+        table.addCell(Cell(2, 1).add(Paragraph("Logs").setFontSize(7f).setBold())
+            .setBackgroundColor(HEADER_BG_COLOR).setFontColor(HEADER_TEXT_COLOR).setTextAlignment(TextAlignment.CENTER))
+
+        // --- Header Row 2 ---
+        // Q | V sub-headers
+        for (i in 0..brands.size) { // 8 brands + 1 total = 9 pairs
+            table.addCell(Cell().add(Paragraph("Q").setFontSize(6f).setBold()).setBackgroundColor(ColorConstants.LIGHT_GRAY).setTextAlignment(TextAlignment.CENTER))
+            table.addCell(Cell().add(Paragraph("V").setFontSize(6f).setBold()).setBackgroundColor(ColorConstants.LIGHT_GRAY).setTextAlignment(TextAlignment.CENTER))
+        }
+
+        // --- Data Processing ---
         val salesByDate = salesList.groupBy {
             val d = Date(it.timestamp)
             SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(d)
@@ -162,25 +191,27 @@ object PdfReportGenerator {
              SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).parse(it)?.time ?: 0L
         }
 
+        // Column Totals
         val colTotalQty = IntArray(brands.size + 1)
         val colTotalVal = DoubleArray(brands.size + 1)
 
-        val formatCompact = { qty: Int, value: Double ->
-            if (qty == 0) "-" else "$qty (${formatValue(value)})"
-        }
-
+        // --- Data Rows ---
         for (dateStr in sortedDates) {
             val dailySales = salesByDate[dateStr] ?: emptyList()
-            addCell(table, dateStr)
+
+            // Date Cell
+            addCell(table, dateStr.substring(0, 5), textSize = 6f) // dd-MM
 
             var dailyTotalQty = 0
             var dailyTotalVal = 0.0
 
+            // Brand Columns
             brands.forEachIndexed { index, brand ->
                 val brandSales = dailySales.filter {
-                    if (brand == "Other") it.brand !in brands.subList(0, 7)
-                    else it.brand.equals(brand, ignoreCase = true)
+                    if (brand == "Other") it.brand !in brands.subList(0, 7) // Exclude known brands
+                    else it.brand.equals(brand, ignoreCase = true) || (brand == "Moto" && it.brand == "Motorola")
                 }
+
                 val qty = brandSales.sumOf { it.quantity }
                 val value = brandSales.sumOf { it.totalValue }
 
@@ -189,21 +220,44 @@ object PdfReportGenerator {
                 colTotalQty[index] += qty
                 colTotalVal[index] += value
 
-                addCell(table, formatCompact(qty, value))
+                // Qty Cell
+                addCell(table, if (qty > 0) qty.toString() else "-", textSize = 6f, align = TextAlignment.CENTER)
+                // Value Cell
+                addCell(table, if (value > 0) formatValueSmall(value) else "-", textSize = 6f, align = TextAlignment.CENTER)
             }
 
+            // Daily Total Columns
             colTotalQty[brands.size] += dailyTotalQty
             colTotalVal[brands.size] += dailyTotalVal
-            addCell(table, formatCompact(dailyTotalQty, dailyTotalVal), isBold = true)
+
+            addCell(table, dailyTotalQty.toString(), isBold = true, textSize = 6f, align = TextAlignment.CENTER)
+            addCell(table, formatValueSmall(dailyTotalVal), isBold = true, textSize = 6f, align = TextAlignment.CENTER)
+
+            // Logs Cell
+            val logText = dailySales.joinToString(", ") {
+                "${it.brand} ${it.model} ${it.variant}"
+            }
+            addCell(table, logText, textSize = 5f, align = TextAlignment.LEFT)
         }
 
-        addCell(table, "TOTAL", isHeader = true)
+        // --- Grand Total Row ---
+        addCell(table, "TOTAL", isBold = true, textSize = 6f)
         brands.forEachIndexed { index, _ ->
-             addCell(table, formatCompact(colTotalQty[index], colTotalVal[index]), isBold = true)
+            addCell(table, colTotalQty[index].toString(), isBold = true, textSize = 6f, align = TextAlignment.CENTER)
+            addCell(table, formatValueSmall(colTotalVal[index]), isBold = true, textSize = 6f, align = TextAlignment.CENTER)
         }
-        addCell(table, formatCompact(colTotalQty[brands.size], colTotalVal[brands.size]), isBold = true)
+        // Total of Totals
+        addCell(table, colTotalQty[brands.size].toString(), isBold = true, textSize = 6f, align = TextAlignment.CENTER)
+        addCell(table, formatValueSmall(colTotalVal[brands.size]), isBold = true, textSize = 6f, align = TextAlignment.CENTER)
+
+        // Empty Log footer
+        addCell(table, "", textSize = 6f)
 
         document.add(table)
+    }
+
+    private fun formatValueSmall(value: Double): String {
+        return (value / 1000).toInt().toString() + "k"
     }
 
     // --- 2. BRAND PERFORMANCE ---
@@ -305,8 +359,8 @@ object PdfReportGenerator {
         document.add(table)
     }
 
-    private fun addCell(table: Table, text: String, isHeader: Boolean = false, isBold: Boolean = false) {
-        val cell = Cell().add(Paragraph(text).setFontSize(if(isHeader) 10f else 9f))
+    private fun addCell(table: Table, text: String, isHeader: Boolean = false, isBold: Boolean = false, textSize: Float = 9f, align: TextAlignment = TextAlignment.LEFT) {
+        val cell = Cell().add(Paragraph(text).setFontSize(if(isHeader) 10f else textSize))
 
         if (isHeader) {
             cell.setBackgroundColor(HEADER_BG_COLOR)
@@ -315,7 +369,7 @@ object PdfReportGenerator {
             cell.setTextAlignment(TextAlignment.CENTER)
         } else {
             if (isBold) cell.setBold()
-            cell.setTextAlignment(TextAlignment.LEFT)
+            cell.setTextAlignment(align)
         }
         table.addCell(cell)
     }
