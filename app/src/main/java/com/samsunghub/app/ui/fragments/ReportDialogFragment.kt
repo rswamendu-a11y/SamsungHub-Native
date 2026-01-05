@@ -32,7 +32,9 @@ class ReportDialogFragment : DialogFragment() {
     private fun setupUI(view: View) {
         val monthPicker = view.findViewById<NumberPicker>(R.id.pickerMonth)
         val yearPicker = view.findViewById<NumberPicker>(R.id.pickerYear)
-        val btnPdf = view.findViewById<MaterialButton>(R.id.btnGeneratePdf)
+        val btnMatrix = view.findViewById<MaterialButton>(R.id.btnMatrix)
+        val btnDetailed = view.findViewById<MaterialButton>(R.id.btnDetailed)
+        val btnMaster = view.findViewById<MaterialButton>(R.id.btnMaster)
 
         val months = arrayOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
         monthPicker.minValue = 0
@@ -47,11 +49,16 @@ class ReportDialogFragment : DialogFragment() {
         yearPicker.maxValue = currentYear + 5
         yearPicker.value = currentCal.get(Calendar.YEAR)
 
-        btnPdf.setOnClickListener {
+        val listener = View.OnClickListener { v ->
             val selectedYear = yearPicker.value
             val selectedMonth = monthPicker.value
+            val type = when(v.id) {
+                R.id.btnMatrix -> com.samsunghub.app.utils.ReportType.MATRIX
+                R.id.btnDetailed -> com.samsunghub.app.utils.ReportType.DETAILED
+                else -> com.samsunghub.app.utils.ReportType.MASTER
+            }
 
-            viewModel.generatePdfForMonth(requireContext(), selectedYear, selectedMonth) { uri ->
+            viewModel.generatePdfForMonth(requireContext(), selectedYear, selectedMonth, type) { uri ->
                 if (uri != null) {
                     Toast.makeText(context, "PDF Saved", Toast.LENGTH_SHORT).show()
                     val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -65,5 +72,9 @@ class ReportDialogFragment : DialogFragment() {
                 dismiss()
             }
         }
+
+        btnMatrix.setOnClickListener(listener)
+        btnDetailed.setOnClickListener(listener)
+        btnMaster.setOnClickListener(listener)
     }
 }

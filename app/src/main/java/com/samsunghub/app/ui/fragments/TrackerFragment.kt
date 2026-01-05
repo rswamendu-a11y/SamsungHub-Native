@@ -103,17 +103,16 @@ class TrackerFragment : Fragment() {
         }
 
         viewModel.salesList.observe(viewLifecycleOwner) { list ->
-            // Filter list to show only selected date's entries?
-            // Note: The ViewModel currently pulls the *whole month*.
-            // We need to filter locally for the "Daily Log" view or update ViewModel to support daily query.
-            // For now, let's filter locally in the Observer for the RecyclerView.
+            // Filter locally for the "Daily Log" view (ignoring time)
             val selectedCal = viewModel.selectedDate.value ?: Calendar.getInstance()
+            val selectedYear = selectedCal.get(Calendar.YEAR)
+            val selectedDay = selectedCal.get(Calendar.DAY_OF_YEAR)
 
             val dailyList = list.filter {
                 val c = Calendar.getInstance()
                 c.timeInMillis = it.timestamp
-                c.get(Calendar.DAY_OF_YEAR) == selectedCal.get(Calendar.DAY_OF_YEAR) &&
-                c.get(Calendar.YEAR) == selectedCal.get(Calendar.YEAR)
+                // Strict Day-of-Year comparison
+                c.get(Calendar.YEAR) == selectedYear && c.get(Calendar.DAY_OF_YEAR) == selectedDay
             }
 
             adapter.submitList(dailyList)

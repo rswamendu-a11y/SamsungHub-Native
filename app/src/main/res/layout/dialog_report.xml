@@ -37,12 +37,27 @@
     </LinearLayout>
 
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnGeneratePdf"
+        android:id="@+id/btnMatrix"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="GENERATE PDF REPORT"
+        android:text="MATRIX OVERVIEW (Landscape)"
         android:backgroundTint="@color/primaryBlue"
-        android:padding="12dp"
-        android:textSize="16sp"/>
+        android:layout_marginBottom="8dp"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnDetailed"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="DETAILED REPORT (Portrait)"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:textColor="@color/primaryBlue"
+        android:layout_marginBottom="8dp"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnMaster"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="MASTER REPORT (Combined)"
+        android:backgroundTint="@color/textGreen"/>
 
 </LinearLayout>
