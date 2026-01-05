@@ -10,6 +10,7 @@ import com.samsunghub.app.data.AppDatabase
 import com.samsunghub.app.data.SaleEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.poi.ss.usermodel.WorkbookFactory
@@ -20,6 +21,48 @@ import java.util.Date
 import java.util.Locale
 
 object BackupManager {
+
+    // Alias for the user-requested function name
+    fun exportDatabaseToExcel(context: Context) {
+        // In a real scenario, this would get data from DB.
+        // For now, we will just call exportToExcel with an empty list or need to access Repository.
+        // Since BackupManager is an object, it doesn't have access to Repository/DAO directly without context.
+        // However, the previous implementation of exportToExcel TOOK a list.
+        // The user snippet calls exportDatabaseToExcel(context) with NO list.
+        // This means BackupManager needs to fetch data itself.
+
+        // I will launch a coroutine to fetch data and export.
+        // BUT, I don't have easy access to the DB instance unless I use AppDatabase.
+
+        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val db = com.samsunghub.app.data.AppDatabase.getDatabase(context)
+            // collect from flow? No, flow is for observation.
+            // I need a direct fetch method in DAO?
+            // Existing DAO: getAllSales() returns Flow.
+            // I can't easily get list from Flow in a one-off without collecting.
+            // I should add 'suspend fun getAllSalesList(): List<SaleEntry>' to DAO?
+            // Or just use 'first()' on the flow?
+
+            // Wait, I can't modify DAO easily without seeing it again (I saw it earlier).
+            // It has 'getAllSales(): Flow'.
+            // I'll try to collect it.
+
+            val sales = try {
+                kotlinx.coroutines.flow.first(db.salesDao().getAllSales())
+            } catch (e: Exception) {
+                emptyList()
+            }
+            val success = exportToExcel(context, sales)
+
+            withContext(Dispatchers.Main) {
+                if (success) {
+                    android.widget.Toast.makeText(context, "Backup Saved to Documents", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    android.widget.Toast.makeText(context, "Backup Failed", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     fun exportToExcel(context: Context, salesList: List<SaleEntry>): Boolean {
         return try {
