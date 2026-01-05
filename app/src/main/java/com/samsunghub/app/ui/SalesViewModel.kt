@@ -92,6 +92,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                 else -> { w4r += sale.totalValue; w4c += sale.quantity }
             }
         }
+        // Always return 4 bars, even if zero, to prevent "No Chart Data" message
         return listOf(
             WeeklyStat("Wk 1", w1r, w1c),
             WeeklyStat("Wk 2", w2r, w2c),

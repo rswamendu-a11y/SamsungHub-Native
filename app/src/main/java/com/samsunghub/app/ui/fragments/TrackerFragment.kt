@@ -147,6 +147,9 @@ class TrackerFragment : Fragment() {
 
         viewModel.insertSale(sale)
 
+        // Jump to the entered date so the user sees the new entry
+        viewModel.setDate(entryDate)
+
         // Clear Fields
         etModel.text.clear()
         etVariant.text.clear()
