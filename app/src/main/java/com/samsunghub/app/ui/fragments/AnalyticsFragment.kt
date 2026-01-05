@@ -16,17 +16,21 @@ import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import com.samsunghub.app.data.SaleEntry
 import com.samsunghub.app.R
 import com.samsunghub.app.ui.IndianCurrencyFormatter
 import com.samsunghub.app.ui.SalesViewModel
-import com.samsunghub.app.ui.WeeklyStat
 import java.text.NumberFormat
+import java.util.Calendar
 import java.util.Locale
 
 class AnalyticsFragment : Fragment() {
 
     private val viewModel: SalesViewModel by activityViewModels()
     private val currencyFormatter = IndianCurrencyFormatter()
+
+    private var currentList: List<SaleEntry> = emptyList()
+    private var isValueMode = true // true = Revenue, false = Volume
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -41,8 +45,8 @@ class AnalyticsFragment : Fragment() {
         val toggleGroup = view.findViewById<com.google.android.material.button.MaterialButtonToggleGroup>(R.id.toggleGroup)
         toggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (isChecked) {
-                val isValue = checkedId == R.id.btnValue
-                viewModel.setChartMode(isValue)
+                isValueMode = (checkedId == R.id.btnValue)
+                updateCharts(currentList)
             }
         }
 
@@ -59,88 +63,106 @@ class AnalyticsFragment : Fragment() {
             view.findViewById<TextView>(R.id.tvLmtdTotal).text = currencyFormat.format(total)
         }
 
-        // Observe Chart Data (Merged logic handled in ViewModel ideally, or fragment logic)
-        // Since we need to switch between Value/Volume, let's assume ViewModel emits WeeklyStat
-        // that contains BOTH revenue and count, or we need separate LiveData.
-        // For simplicity, let's assume ViewModel has `weeklyStats` (value) and `weeklyVolume` (count).
-        // I will add `weeklyVolume` to ViewModel.
-
-        viewModel.chartMode.observe(viewLifecycleOwner) { isValue ->
-             updateCharts(view, isValue)
+        // Observe Source of Truth directly
+        viewModel.salesList.observe(viewLifecycleOwner) { list ->
+            currentList = list
+            updateCharts(list)
         }
     }
 
-    private fun updateCharts(view: View, isValue: Boolean) {
-        val weeklyData = if (isValue) viewModel.weeklyStats.value else viewModel.weeklyVolume.value
-        val brandData = if (isValue) viewModel.brandStats.value else viewModel.brandVolume.value
+    private fun updateCharts(list: List<SaleEntry>) {
+        val view = view ?: return
 
-        if (weeklyData != null) setupWeeklyChart(view, weeklyData, isValue)
-        if (brandData != null) setupBrandChart(view, brandData, isValue)
-    }
+        // --- PART A: Weekly Chart Logic ---
+        val weeklyBuckets = DoubleArray(4) // [0.0, 0.0, 0.0, 0.0]
 
-    private fun setupWeeklyChart(view: View, stats: List<WeeklyStat>, isValue: Boolean) {
-        val chart = view.findViewById<BarChart>(R.id.chartWeekly)
-        val entries = stats.mapIndexed { index, stat ->
-            val value = if (isValue) stat.revenue else stat.count.toDouble()
-            BarEntry(index.toFloat(), value.toFloat())
+        list.forEach { sale ->
+            val calendar = Calendar.getInstance()
+            calendar.timeInMillis = sale.timestamp
+            val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+            val index = when {
+                day <= 7 -> 0
+                day <= 14 -> 1
+                day <= 21 -> 2
+                else -> 3
+            }
+            val valueToAdd = if (isValueMode) sale.totalValue else sale.quantity.toDouble()
+            weeklyBuckets[index] += valueToAdd
         }
 
+        val weeklyEntries = listOf(
+            BarEntry(0f, weeklyBuckets[0].toFloat()),
+            BarEntry(1f, weeklyBuckets[1].toFloat()),
+            BarEntry(2f, weeklyBuckets[2].toFloat()),
+            BarEntry(3f, weeklyBuckets[3].toFloat())
+        )
+
+        val chartWeekly = view.findViewById<BarChart>(R.id.chartWeekly)
         val colorPrimary = ContextCompat.getColor(requireContext(), R.color.primaryBlue)
-        val label = if (isValue) "Revenue" else "Volume"
-        val dataSet = BarDataSet(entries, label).apply {
+        val labelWeekly = if (isValueMode) "Revenue" else "Volume"
+        val formatter = if (isValueMode) currencyFormatter else null
+
+        val dsWeekly = BarDataSet(weeklyEntries, labelWeekly).apply {
             color = colorPrimary
             valueTextSize = 12f
-            valueFormatter = currencyFormatter
+            valueFormatter = formatter
         }
 
-        val labels = stats.map { it.label }
-        chart.apply {
-            data = BarData(dataSet)
+        chartWeekly.apply {
+            data = BarData(dsWeekly)
             description.isEnabled = false
             legend.isEnabled = false
             xAxis.position = XAxis.XAxisPosition.BOTTOM
-            xAxis.valueFormatter = IndexAxisValueFormatter(labels as Collection<String>)
+            xAxis.valueFormatter = IndexAxisValueFormatter(listOf("Wk 1", "Wk 2", "Wk 3", "Wk 4"))
             xAxis.granularity = 1f
             xAxis.setDrawGridLines(false)
-            axisLeft.valueFormatter = currencyFormatter
+            axisLeft.valueFormatter = formatter
             axisLeft.axisMinimum = 0f
             axisRight.isEnabled = false
-            animateY(1000)
+            animateY(500)
             invalidate()
         }
-    }
 
-    private fun setupBrandChart(view: View, stats: Map<String, Double>, isValue: Boolean) {
-        val chart = view.findViewById<HorizontalBarChart>(R.id.chartBrand)
-        val sortedStats = stats.toList().sortedByDescending { it.second }
-        val entries = sortedStats.mapIndexed { index, pair ->
-            BarEntry(index.toFloat(), pair.second.toFloat())
+        // --- PART B: Brand Chart Logic ---
+        val brandMap = list.groupBy { it.brand }
+        val brandEntries = ArrayList<BarEntry>()
+        val brandLabels = ArrayList<String>()
+
+        // Calculate totals and sort
+        val sortedBrands = brandMap.map { (brand, sales) ->
+            val total = if (isValueMode) sales.sumOf { it.totalValue } else sales.sumOf { it.quantity }.toDouble()
+            brand to total
+        }.sortedByDescending { it.second } // Sort high to low
+
+        sortedBrands.forEachIndexed { index, (brand, total) ->
+            brandEntries.add(BarEntry(index.toFloat(), total.toFloat()))
+            brandLabels.add(brand)
         }
 
+        val chartBrand = view.findViewById<HorizontalBarChart>(R.id.chartBrand)
         val colorTeal = Color.parseColor("#00897B")
-        val label = if (isValue) "Brand Revenue" else "Brand Volume"
-        val formatter = if (isValue) currencyFormatter else null // Null uses default (simple numbers)
+        val labelBrand = if (isValueMode) "Brand Revenue" else "Brand Volume"
 
-        val dataSet = BarDataSet(entries, label).apply {
+        val dsBrand = BarDataSet(brandEntries, labelBrand).apply {
             color = colorTeal
             valueTextSize = 12f
             valueFormatter = formatter
         }
 
-        val labels = sortedStats.map { it.first }
-        chart.apply {
-            data = BarData(dataSet)
+        chartBrand.apply {
+            data = BarData(dsBrand)
             description.isEnabled = false
             legend.isEnabled = false
             xAxis.position = XAxis.XAxisPosition.BOTTOM
-            xAxis.valueFormatter = IndexAxisValueFormatter(labels)
+            xAxis.valueFormatter = IndexAxisValueFormatter(brandLabels)
             xAxis.granularity = 1f
             xAxis.setDrawGridLines(false)
-            xAxis.labelCount = labels.size
+            xAxis.labelCount = brandLabels.size
             axisLeft.valueFormatter = formatter
             axisLeft.axisMinimum = 0f
             axisRight.isEnabled = false
-            animateY(1000)
+            animateY(500)
             invalidate()
         }
     }
