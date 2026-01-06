@@ -35,6 +35,7 @@ class ReportDialogFragment : DialogFragment() {
         val btnMatrix = view.findViewById<MaterialButton>(R.id.btnMatrix)
         val btnDetailed = view.findViewById<MaterialButton>(R.id.btnDetailed)
         val btnMaster = view.findViewById<MaterialButton>(R.id.btnMaster)
+        val btnPriceSegment = view.findViewById<MaterialButton>(R.id.btnPriceSegment)
 
         val months = arrayOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
         monthPicker.minValue = 0
@@ -77,5 +78,6 @@ class ReportDialogFragment : DialogFragment() {
         btnMatrix.setOnClickListener(listener)
         btnDetailed.setOnClickListener(listener)
         btnMaster.setOnClickListener(listener)
+        btnPriceSegment.setOnClickListener(listener)
     }
 }

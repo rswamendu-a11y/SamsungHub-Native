@@ -65,7 +65,7 @@
         android:id="@+id/btnPriceSegment"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Price Segment Analysis (PDF)"
+        android:text="Monthly Price Segment Analysis"
         android:backgroundTint="@color/primaryBlue"/>
 
 </LinearLayout>
