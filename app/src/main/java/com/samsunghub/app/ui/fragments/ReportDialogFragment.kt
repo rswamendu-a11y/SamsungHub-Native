@@ -21,7 +21,7 @@ class ReportDialogFragment : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val builder = AlertDialog.Builder(requireContext())
-        val view = LayoutInflater.from(context).inflate(R.layout.dialog_report, null)
+        val view = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_report, null)
 
         setupUI(view)
 
@@ -61,14 +61,14 @@ class ReportDialogFragment : DialogFragment() {
 
             viewModel.generatePdfForMonth(requireContext(), selectedYear, selectedMonth, type) { uri ->
                 if (uri != null) {
-                    Toast.makeText(context, "PDF Saved", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "PDF Saved", Toast.LENGTH_SHORT).show()
                     val intent = Intent(Intent.ACTION_VIEW).apply {
                         setDataAndType(uri, "application/pdf")
                         flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
                     }
                     startActivity(Intent.createChooser(intent, "Open Report"))
                 } else {
-                    Toast.makeText(context, "Failed", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Failed", Toast.LENGTH_SHORT).show()
                 }
                 dismiss()
             }

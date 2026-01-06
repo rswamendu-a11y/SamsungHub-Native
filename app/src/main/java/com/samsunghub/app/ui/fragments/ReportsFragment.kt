@@ -34,7 +34,7 @@ class ReportsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val rv = view.findViewById<RecyclerView>(R.id.recyclerViewReports)
-        rv.layoutManager = LinearLayoutManager(context)
+        rv.layoutManager = LinearLayoutManager(requireContext())
         adapter = ReportsAdapter(
             onOpen = { file -> openFile(file) },
             onDelete = { file -> deleteReport(file) }
@@ -48,14 +48,14 @@ class ReportsFragment : Fragment() {
         try {
             val rows = requireContext().contentResolver.delete(file.uri, null, null)
             if (rows > 0) {
-                android.widget.Toast.makeText(context, "Report Deleted", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(requireContext(), "Report Deleted", android.widget.Toast.LENGTH_SHORT).show()
                 loadReports() // Refresh list
             } else {
                 // Fallback attempt (unlikely to work for SAF/MediaStore uri but safe to try)
-                android.widget.Toast.makeText(context, "Could not delete file", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(requireContext(), "Could not delete file", android.widget.Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
-            android.widget.Toast.makeText(context, "Delete Failed: ${e.localizedMessage}", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(requireContext(), "Delete Failed: ${e.localizedMessage}", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 

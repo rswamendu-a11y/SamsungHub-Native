@@ -51,7 +51,7 @@ class TrackerFragment : Fragment() {
         adapter = SalesAdapter { sale ->
             EditSaleDialog(sale).show(parentFragmentManager, "EditSale")
         }
-        rv.layoutManager = LinearLayoutManager(context)
+        rv.layoutManager = LinearLayoutManager(requireContext())
         rv.adapter = adapter
 
         // 2. Spinner
@@ -138,7 +138,7 @@ class TrackerFragment : Fragment() {
         val priceStr = etPrice.text.toString()
 
         if (model.isBlank() || priceStr.isBlank()) {
-            Toast.makeText(context, "Model and Price are required", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Model and Price are required", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -160,7 +160,7 @@ class TrackerFragment : Fragment() {
         etPrice.text.clear()
         etQty.setText("1")
 
-        Toast.makeText(context, "Added to Queue", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), "Added to Queue", Toast.LENGTH_SHORT).show()
     }
 
     private fun updateEntryDateText(tv: TextView) {

@@ -43,13 +43,13 @@ class ProfileFragment : Fragment() {
                 binding.etOutletName.text.toString(),
                 binding.etSecName.text.toString()
             )
-            Toast.makeText(context, "Details Saved", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Details Saved", Toast.LENGTH_SHORT).show()
         }
 
         // Set PIN
         binding.btnSetPin.setOnClickListener {
             // Simple Dialog Logic to be added later or handled by Activity
-            Toast.makeText(context, "PIN Feature Active", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "PIN Feature Active", Toast.LENGTH_SHORT).show()
         }
 
         // Master Backup
@@ -59,13 +59,13 @@ class ProfileFragment : Fragment() {
 
         // Master Restore (DISABLED TO FIX BUILD)
         binding.btnRestore.setOnClickListener {
-            Toast.makeText(context, "Restore coming in next update", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Restore coming in next update", Toast.LENGTH_SHORT).show()
         }
 
         // Factory Reset
         binding.btnReset.setOnClickListener {
             // Add reset logic here if needed, or just Toast for now to ensure safety
-             Toast.makeText(context, "Reset feature active", Toast.LENGTH_SHORT).show()
+             Toast.makeText(requireContext(), "Reset feature active", Toast.LENGTH_SHORT).show()
         }
     }
 
