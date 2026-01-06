@@ -36,6 +36,8 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     val salesList: LiveData<List<SaleEntry>>
     val mtdTotal: LiveData<Double>
     val lmtdTotal: LiveData<Double>
+    val mtdVolume: LiveData<Int>
+    val lmtdVolume: LiveData<Int>
 
     // Combined Stats
     val weeklyStats: LiveData<List<WeeklyStat>>
@@ -57,10 +59,16 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         mtdTotal = salesList.map { list -> list.sumOf { it.totalValue } }
+        mtdVolume = salesList.map { list -> list.sumOf { it.quantity } }
 
         lmtdTotal = _selectedDate.switchMap { cal ->
             val (start, end) = repository.getLmtdRange(cal)
             repository.getSalesForRange(start, end).map { list -> list.sumOf { it.totalValue } }.asLiveData()
+        }
+
+        lmtdVolume = _selectedDate.switchMap { cal ->
+            val (start, end) = repository.getLmtdRange(cal)
+            repository.getSalesForRange(start, end).map { list -> list.sumOf { it.quantity } }.asLiveData()
         }
 
         weeklyStats = salesList.map { list -> calculateWeeklyStats(list) }

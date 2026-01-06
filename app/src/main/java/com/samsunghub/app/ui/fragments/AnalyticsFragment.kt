@@ -101,12 +101,20 @@ class AnalyticsFragment : Fragment() {
         val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
 
         viewModel.mtdTotal.observe(viewLifecycleOwner) { total ->
-            view.findViewById<TextView>(R.id.tvMtdTotal).text = currencyFormat.format(total)
-            updateCharts(currentList) // Refresh comparison chart
+            if (isValueMode) view.findViewById<TextView>(R.id.tvMtdTotal).text = currencyFormat.format(total)
+            updateCharts(currentList)
         }
         viewModel.lmtdTotal.observe(viewLifecycleOwner) { total ->
-            view.findViewById<TextView>(R.id.tvLmtdTotal).text = currencyFormat.format(total)
-            updateCharts(currentList) // Refresh comparison chart
+            if (isValueMode) view.findViewById<TextView>(R.id.tvLmtdTotal).text = currencyFormat.format(total)
+            updateCharts(currentList)
+        }
+        viewModel.mtdVolume.observe(viewLifecycleOwner) { volume ->
+            if (!isValueMode) view.findViewById<TextView>(R.id.tvMtdTotal).text = volume.toString()
+            updateCharts(currentList)
+        }
+        viewModel.lmtdVolume.observe(viewLifecycleOwner) { volume ->
+            if (!isValueMode) view.findViewById<TextView>(R.id.tvLmtdTotal).text = volume.toString()
+            updateCharts(currentList)
         }
 
         // Observe Source of Truth directly
@@ -122,18 +130,30 @@ class AnalyticsFragment : Fragment() {
 
         // --- PART 0: MTD vs LMTD Comparison ---
         val chartComparison = view.findViewById<BarChart>(R.id.chartComparison)
-        val mtdTotal = viewModel.mtdTotal.value?.toFloat() ?: 0f
-        val lmtdTotal = viewModel.lmtdTotal.value?.toFloat() ?: 0f
+
+        val mtdVal: Float
+        val lmtdVal: Float
+        val formatter: com.github.mikephil.charting.formatter.ValueFormatter
+
+        if (isValueMode) {
+            mtdVal = viewModel.mtdTotal.value?.toFloat() ?: 0f
+            lmtdVal = viewModel.lmtdTotal.value?.toFloat() ?: 0f
+            formatter = currencyFormatter
+        } else {
+            mtdVal = viewModel.mtdVolume.value?.toFloat() ?: 0f
+            lmtdVal = viewModel.lmtdVolume.value?.toFloat() ?: 0f
+            formatter = com.github.mikephil.charting.formatter.DefaultAxisValueFormatter(0)
+        }
 
         val compEntries = listOf(
-            BarEntry(0f, mtdTotal),
-            BarEntry(1f, lmtdTotal)
+            BarEntry(0f, mtdVal),
+            BarEntry(1f, lmtdVal)
         )
 
-        val dsComp = BarDataSet(compEntries, "MTD vs LMTD").apply {
+        val dsComp = BarDataSet(compEntries, if (isValueMode) "Revenue" else "Volume").apply {
             colors = listOf(Color.parseColor("#1428A0"), Color.GRAY)
             valueTextSize = 12f
-            valueFormatter = currencyFormatter
+            valueFormatter = formatter
         }
 
         chartComparison.apply {
@@ -144,7 +164,7 @@ class AnalyticsFragment : Fragment() {
             xAxis.valueFormatter = IndexAxisValueFormatter(listOf("MTD", "LMTD"))
             xAxis.granularity = 1f
             xAxis.setDrawGridLines(false)
-            axisLeft.valueFormatter = currencyFormatter
+            axisLeft.valueFormatter = formatter
             axisLeft.axisMinimum = 0f
             axisRight.isEnabled = false
             animateY(500)
