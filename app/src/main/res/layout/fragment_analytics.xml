@@ -27,28 +27,13 @@
                 android:textStyle="bold"
                 android:textSize="20sp"/>
 
-            <com.google.android.material.button.MaterialButtonToggleGroup
-                android:id="@+id/toggleGroup"
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/toggleVolume"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:singleSelection="true"
-                app:selectionRequired="true"
-                app:checkedButton="@id/btnValue">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Value"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnVolume"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Volume"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-            </com.google.android.material.button.MaterialButtonToggleGroup>
+                android:text="Volume Mode"
+                android:textColor="@color/primaryBlue"
+                android:textSize="16sp"/>
         </LinearLayout>
 
         <!-- Scorecards -->
