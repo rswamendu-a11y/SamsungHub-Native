@@ -33,7 +33,7 @@ class AnalyticsFragment : Fragment() {
         vm.salesList.observe(viewLifecycleOwner) { l -> upd(l?:emptyList()) }
     }
 
-    private fun upd(l: List<SaleEntry>) { currentList = l; updWk(l); updBr(l); b.chartComparison.visibility=View.GONE }
+    private fun upd(l: List<SaleEntry>) { currentList = l; updWk(l); updBr(l); updTbl(l); b.chartComparison.visibility=View.GONE }
     private fun getV(s: SaleEntry) = if (isVol) s.quantity.toFloat() else s.totalValue.toFloat()
 
     private fun getF(isAxis: Boolean = false): ValueFormatter = object : ValueFormatter() {
@@ -70,8 +70,43 @@ class AnalyticsFragment : Fragment() {
         b.chartBrand.apply { data = BarData(set); data.barWidth = 0.6f; xAxis.valueFormatter = IndexAxisValueFormatter(labs); xAxis.granularity=1f; xAxis.labelCount=labs.size; xAxis.labelRotationAngle = -45f; axisLeft.valueFormatter = getF(true); axisRight.valueFormatter = getF(true); invalidate() }
     }
 
-    // Placeholder for Table Logic
-    private fun updTbl(l: List<SaleEntry>) {}
+    private fun updTbl(l: List<SaleEntry>) {
+        try {
+            val t = b.root.findViewById<TableLayout>(com.samsunghub.app.R.id.tablePriceSegments) ?: return
+            t.removeAllViews()
+            val rngs = listOf("<10K", "10K-15K", "15K-20K", "20K-30K", "30K-40K", "40K-70K", "70K-100K", ">100K")
+
+            // Header
+            val hr = TableRow(context)
+            hr.addView(tv("Brand", true))
+            rngs.forEach { hr.addView(tv(it, true)) }
+            t.addView(hr)
+
+            // Body
+            brs.forEach { b ->
+                val r = TableRow(context)
+                r.addView(tv(b, false, true))
+                val sl = l.filter { it.brand == b }
+                rngs.indices.forEach { i ->
+                    val c = sl.count { s ->
+                        val p = s.unitPrice
+                        s.quantity > 0 && when(i) {
+                            0->p<10000; 1->p>=10000 && p<15000; 2->p>=15000 && p<20000; 3->p>=20000 && p<30000;
+                            4->p>=30000 && p<40000; 5->p>=40000 && p<70000; 6->p>=70000 && p<100000; else->p>=100000
+                        }
+                    }
+                    r.addView(tv(if(c>0) c.toString() else "-", false))
+                }
+                t.addView(r)
+            }
+        } catch (e: Exception) {}
+    }
+
+    private fun tv(txt: String, bg: Boolean=false, bld: Boolean=false): TextView = TextView(context).apply {
+        text=txt; setPadding(8,8,8,8); gravity=Gravity.CENTER
+        if(bg) setBackgroundColor(Color.LTGRAY)
+        if(bld) setTypeface(null, android.graphics.Typeface.BOLD)
+    }
 
     override fun onDestroyView() { super.onDestroyView(); _b = null }
 }
