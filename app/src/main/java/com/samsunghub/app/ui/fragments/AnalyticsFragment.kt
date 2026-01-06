@@ -2,112 +2,127 @@ package com.samsunghub.app.ui.fragments
 
 import android.graphics.Color
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
+import android.widget.*
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.components.*
 import com.github.mikephil.charting.data.*
-import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
-import com.github.mikephil.charting.formatter.ValueFormatter
+import com.github.mikephil.charting.formatter.*
 import com.samsunghub.app.databinding.FragmentAnalyticsBinding
 import com.samsunghub.app.data.SaleEntry
 import com.samsunghub.app.ui.SalesViewModel
 import java.util.Calendar
 
 class AnalyticsFragment : Fragment() {
-    private var _binding: FragmentAnalyticsBinding? = null
-    private val binding get() = _binding!!
-    private val viewModel: SalesViewModel by activityViewModels()
-    private var isVolumeMode = false
+    private var _b: FragmentAnalyticsBinding? = null
+    private val b get() = _b!!
+    private val vm: SalesViewModel by activityViewModels()
+    private var isVol = false
     private var currentList: List<SaleEntry> = emptyList()
-    private val brandColors = intArrayOf(Color.parseColor("#2196F3"), Color.parseColor("#9E9E9E"), Color.parseColor("#4CAF50"), Color.parseColor("#9C27B0"), Color.parseColor("#009688"), Color.parseColor("#FF9800"), Color.parseColor("#3F51B5"), Color.BLACK)
-    private val brands = listOf("Samsung", "Apple", "Realme", "Oppo", "Vivo", "Xiaomi", "Moto", "Others")
+
+    // Fixed Colors
+    private val cols = intArrayOf(Color.parseColor("#2196F3"), Color.parseColor("#9E9E9E"), Color.parseColor("#4CAF50"), Color.parseColor("#9C27B0"), Color.parseColor("#009688"), Color.parseColor("#FF9800"), Color.parseColor("#3F51B5"), Color.BLACK)
+    private val brs = listOf("Samsung", "Apple", "Realme", "Oppo", "Vivo", "Xiaomi", "Moto", "Others")
+    private val rngs = listOf("<10K", "10K-15K", "15K-20K", "20K-30K", "30K-40K", "40K-70K", "70K-100K", ">100K")
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
-        _binding = FragmentAnalyticsBinding.inflate(i, c, false)
-        return binding.root
+        _b = FragmentAnalyticsBinding.inflate(i, c, false)
+        return b.root
     }
 
     override fun onViewCreated(v: View, s: Bundle?) {
         super.onViewCreated(v, s)
-        binding.toggleVolume.setOnCheckedChangeListener { _, b ->
-            isVolumeMode = b
-            updateAllCharts(currentList)
+        // Hide Obsolete Scorecards
+        try {
+            val sc = b.root.findViewWithTag<View>("top_scorecard")
+            if(sc != null) sc.visibility = View.GONE
+        } catch (e: Exception) {}
+
+        b.toggleVolume.setOnCheckedChangeListener { _, c -> isVol = c; upd(vm.salesList.value?:emptyList()) }
+        vm.salesList.observe(viewLifecycleOwner) { l -> upd(l?:emptyList()) }
+    }
+
+    private fun upd(l: List<SaleEntry>) {
+        currentList = l
+        updWk(l); updBr(l); updTbl(l)
+        b.chartComparison.visibility=View.GONE
+    }
+
+    private fun getV(s: SaleEntry) = if (isVol) s.quantity.toFloat() else s.totalValue.toFloat()
+
+    private fun getF(): ValueFormatter = object : ValueFormatter() {
+        override fun getFormattedValue(v: Float) = if(v>0) (if(isVol) v.toInt().toString() else "${(v/1000).toInt()}k") else ""
+    }
+
+    private fun updWk(l: List<SaleEntry>) {
+        val d = Array(4) { FloatArray(8) }
+        l.forEach { s ->
+            val c = Calendar.getInstance(); c.timeInMillis = s.timestamp
+            val w = when(c.get(Calendar.DAY_OF_MONTH)) { in 1..7->0; in 8..14->1; in 15..21->2; else->3 }
+            val idx = brs.indexOf(s.brand); if (idx!=-1) d[w][idx] += getV(s)
         }
-        viewModel.salesList.observe(viewLifecycleOwner) { l ->
-            currentList = l ?: emptyList()
-            updateAllCharts(currentList)
+        val set = BarDataSet((0..3).map { BarEntry(it.toFloat(), d[it]) }, "Weekly Achievement")
+        set.colors = cols.toList(); set.stackLabels = brs.toTypedArray()
+        set.valueFormatter = getF(); set.valueTextColor = Color.BLACK; set.valueTextSize = 10f
+
+        b.chartWeekly.apply {
+            data = BarData(set)
+            xAxis.valueFormatter = IndexAxisValueFormatter(listOf("Wk1","Wk2","Wk3","Wk4"))
+            legend.isWordWrapEnabled=true
+            legend.orientation=Legend.LegendOrientation.HORIZONTAL
+            invalidate()
         }
     }
 
-    private fun updateAllCharts(list: List<SaleEntry>) {
-        updateComparisonChart(list)
-        updateWeeklyStackedChart(list)
-        updateBrandChart(list)
-    }
-
-    private fun getVal(s: SaleEntry): Float = if (isVolumeMode) s.quantity.toFloat() else s.totalValue.toFloat()
-
-    private fun getFmt(): ValueFormatter {
-        return if (isVolumeMode) object : ValueFormatter() { override fun getFormattedValue(v: Float) = v.toInt().toString() }
-        else object : ValueFormatter() { override fun getFormattedValue(v: Float) = if(v>0) "${(v/1000).toInt()}k" else "" }
-    }
-
-    private fun updateComparisonChart(list: List<SaleEntry>) {
-        val mtd = list.sumOf { getVal(it).toDouble() }.toFloat()
-        val set = BarDataSet(listOf(BarEntry(0f, mtd), BarEntry(1f, 0f)), "Performance")
-        set.colors = listOf(Color.parseColor("#3F51B5"), Color.LTGRAY)
-        set.valueFormatter = getFmt()
-        val data = BarData(set)
-        binding.chartComparison.data = data
-        binding.chartComparison.description.isEnabled = false
-        binding.chartComparison.xAxis.valueFormatter = IndexAxisValueFormatter(listOf("MTD", "LMTD"))
-        binding.chartComparison.invalidate()
-    }
-
-    private fun updateWeeklyStackedChart(list: List<SaleEntry>) {
-        val weeklyData = Array(4) { FloatArray(8) }
-        list.forEach { s ->
-            val cal = Calendar.getInstance()
-            cal.timeInMillis = s.timestamp
-            val d = cal.get(Calendar.DAY_OF_MONTH)
-            val wk = when { d<=7->0; d<=14->1; d<=21->2; else->3 }
-            val bIdx = brands.indexOf(s.brand)
-            if (bIdx != -1) weeklyData[wk][bIdx] += getVal(s)
+    private fun updBr(l: List<SaleEntry>) {
+        val map = l.groupBy { it.brand }
+        val ents = ArrayList<BarEntry>(); val labs = ArrayList<String>(); var i = 0f
+        brs.forEach { b ->
+            val total = map[b]?.sumOf { getV(it).toDouble() }?.toFloat() ?: 0f
+            ents.add(BarEntry(i++, total)); labs.add(b)
         }
-        val entries = (0..3).map { BarEntry(it.toFloat(), weeklyData[it]) }
-        val set = BarDataSet(entries, "Weekly")
-        set.colors = brandColors.toList()
-        set.stackLabels = brands.toTypedArray()
-        set.valueFormatter = getFmt()
-        set.valueTextColor = Color.BLACK
-        binding.chartWeekly.data = BarData(set)
-        binding.chartWeekly.description.isEnabled = false
-        binding.chartWeekly.xAxis.valueFormatter = IndexAxisValueFormatter(listOf("Wk1","Wk2","Wk3","Wk4"))
-        binding.chartWeekly.invalidate()
-    }
+        val set = BarDataSet(ents, "Brand Performance")
+        set.color = Color.parseColor("#009688"); set.valueFormatter = getF(); set.valueTextSize = 10f
 
-    private fun updateBrandChart(list: List<SaleEntry>) {
-        val map = list.groupBy { it.brand }
-        val entries = ArrayList<BarEntry>()
-        val labels = ArrayList<String>()
-        var i = 0f
-        map.forEach { (b, sales) ->
-            entries.add(BarEntry(i++, sales.sumOf { getVal(it).toDouble() }.toFloat()))
-            labels.add(b)
+        b.chartBrand.apply {
+            data = BarData(set); data.barWidth = 0.5f
+            xAxis.valueFormatter = IndexAxisValueFormatter(labs)
+            xAxis.granularity=1f; xAxis.labelCount=labs.size
+            invalidate()
         }
-        val set = BarDataSet(entries, "Brand")
-        set.color = Color.parseColor("#009688")
-        set.valueFormatter = getFmt()
-        val data = BarData(set)
-        data.barWidth = 0.5f
-        binding.chartBrand.data = data
-        binding.chartBrand.description.isEnabled = false
-        binding.chartBrand.xAxis.valueFormatter = IndexAxisValueFormatter(labels)
-        binding.chartBrand.invalidate()
     }
 
-    override fun onDestroyView() { super.onDestroyView(); _binding = null }
+    private fun updTbl(l: List<SaleEntry>) {
+        try {
+            val t = b.root.findViewById<TableLayout>(com.samsunghub.app.R.id.tablePriceSegments) ?: return
+            t.removeAllViews()
+            val hr = TableRow(context); hr.addView(tv("Brand", true))
+            rngs.forEach { hr.addView(tv(it, true)) }; t.addView(hr)
+
+            brs.forEach { b ->
+                val r = TableRow(context); r.addView(tv(b, false, true))
+                val sl = l.filter { it.brand == b }
+                rngs.indices.forEach { i ->
+                    val c = sl.count { s ->
+                        val p = s.unitPrice
+                        when(i) {
+                            0->p<10000; 1->p<15000; 2->p<20000; 3->p<30000;
+                            4->p<40000; 5->p<70000; 6->p<100000; else->p>=100000
+                        }
+                    }
+                    r.addView(tv(if(c>0) c.toString() else "-", false))
+                }
+                t.addView(r)
+            }
+        } catch (e: Exception) {}
+    }
+
+    private fun tv(txt: String, bg: Boolean=false, bld: Boolean=false): TextView = TextView(context).apply {
+        text=txt; setPadding(8,8,8,8); gravity=Gravity.CENTER
+        if(bg) setBackgroundColor(Color.LTGRAY)
+        if(bld) setTypeface(null, android.graphics.Typeface.BOLD)
+    }
+
+    override fun onDestroyView() { super.onDestroyView(); _b = null }
 }
