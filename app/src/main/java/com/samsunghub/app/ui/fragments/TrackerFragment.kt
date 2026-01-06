@@ -74,6 +74,10 @@ class TrackerFragment : Fragment() {
                 { _, y, m, d ->
                     entryDate.set(y, m, d)
                     updateEntryDateText(tvEntryDate)
+                    // FIX: Sync ViewModel date immediately so log updates visually
+                    val syncCal = Calendar.getInstance()
+                    syncCal.set(y, m, d)
+                    viewModel.setDate(syncCal)
                 },
                 entryDate.get(Calendar.YEAR),
                 entryDate.get(Calendar.MONTH),

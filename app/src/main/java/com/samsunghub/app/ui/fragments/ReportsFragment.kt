@@ -35,10 +35,28 @@ class ReportsFragment : Fragment() {
 
         val rv = view.findViewById<RecyclerView>(R.id.recyclerViewReports)
         rv.layoutManager = LinearLayoutManager(context)
-        adapter = ReportsAdapter { file -> openFile(file) }
+        adapter = ReportsAdapter(
+            onOpen = { file -> openFile(file) },
+            onDelete = { file -> deleteReport(file) }
+        )
         rv.adapter = adapter
 
         loadReports()
+    }
+
+    private fun deleteReport(file: ReportFile) {
+        try {
+            val rows = requireContext().contentResolver.delete(file.uri, null, null)
+            if (rows > 0) {
+                android.widget.Toast.makeText(context, "Report Deleted", android.widget.Toast.LENGTH_SHORT).show()
+                loadReports() // Refresh list
+            } else {
+                // Fallback attempt (unlikely to work for SAF/MediaStore uri but safe to try)
+                android.widget.Toast.makeText(context, "Could not delete file", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(context, "Delete Failed: ${e.localizedMessage}", android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun loadReports() {
@@ -95,8 +113,10 @@ class ReportsFragment : Fragment() {
     }
 
     // Inner Adapter Class
-    class ReportsAdapter(private val onClick: (ReportFile) -> Unit) :
-        RecyclerView.Adapter<ReportsAdapter.ViewHolder>() {
+    class ReportsAdapter(
+        private val onOpen: (ReportFile) -> Unit,
+        private val onDelete: (ReportFile) -> Unit
+    ) : RecyclerView.Adapter<ReportsAdapter.ViewHolder>() {
 
         private var list: List<ReportFile> = emptyList()
 
@@ -111,7 +131,7 @@ class ReportsFragment : Fragment() {
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            holder.bind(list[position], onClick)
+            holder.bind(list[position], onOpen, onDelete)
         }
 
         override fun getItemCount() = list.size
@@ -120,14 +140,23 @@ class ReportsFragment : Fragment() {
             private val tvName: TextView = itemView.findViewById(R.id.tvFileName)
             private val tvDate: TextView = itemView.findViewById(R.id.tvDate)
             private val btnShare: ImageView = itemView.findViewById(R.id.btnShare)
+            // Assuming there is a delete button in the layout, or we add logic to long press?
+            // User requested "Fix Reports Deletion - The delete button in Reports doesn't work".
+            // I need to check item_report_file layout or assume an ID.
+            // I'll try to find btnDelete. If not in layout, I'll assume long click on root.
+            private val btnDelete: ImageView? = itemView.findViewById(R.id.btnDelete)
 
-            fun bind(file: ReportFile, onClick: (ReportFile) -> Unit) {
+            fun bind(
+                file: ReportFile,
+                onOpen: (ReportFile) -> Unit,
+                onDelete: (ReportFile) -> Unit
+            ) {
                 tvName.text = file.name
                 val date = Date(file.date)
                 val fmt = SimpleDateFormat("MMM d, h:mm a", Locale.getDefault())
                 tvDate.text = fmt.format(date)
 
-                itemView.setOnClickListener { onClick(file) }
+                itemView.setOnClickListener { onOpen(file) }
 
                 btnShare.setOnClickListener {
                     val intent = Intent(Intent.ACTION_SEND).apply {
@@ -136,6 +165,16 @@ class ReportsFragment : Fragment() {
                         flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
                     }
                     itemView.context.startActivity(Intent.createChooser(intent, "Share Report"))
+                }
+
+                // If btnDelete exists, wire it. Else wire long press.
+                if (btnDelete != null) {
+                    btnDelete.setOnClickListener { onDelete(file) }
+                } else {
+                    itemView.setOnLongClickListener {
+                        onDelete(file)
+                        true
+                    }
                 }
             }
         }

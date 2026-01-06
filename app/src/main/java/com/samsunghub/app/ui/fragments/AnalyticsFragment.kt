@@ -17,11 +17,14 @@ import androidx.fragment.app.activityViewModels
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.charts.HorizontalBarChart
 import com.github.mikephil.charting.components.Legend
+import com.github.mikephil.charting.components.MarkerView
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import com.github.mikephil.charting.highlight.Highlight
+import com.github.mikephil.charting.utils.MPPointF
 import com.samsunghub.app.data.SaleEntry
 import com.samsunghub.app.R
 import com.samsunghub.app.ui.IndianCurrencyFormatter
@@ -99,9 +102,11 @@ class AnalyticsFragment : Fragment() {
 
         viewModel.mtdTotal.observe(viewLifecycleOwner) { total ->
             view.findViewById<TextView>(R.id.tvMtdTotal).text = currencyFormat.format(total)
+            updateCharts(currentList) // Refresh comparison chart
         }
         viewModel.lmtdTotal.observe(viewLifecycleOwner) { total ->
             view.findViewById<TextView>(R.id.tvLmtdTotal).text = currencyFormat.format(total)
+            updateCharts(currentList) // Refresh comparison chart
         }
 
         // Observe Source of Truth directly
@@ -114,6 +119,37 @@ class AnalyticsFragment : Fragment() {
 
     private fun updateCharts(list: List<SaleEntry>) {
         val view = view ?: return
+
+        // --- PART 0: MTD vs LMTD Comparison ---
+        val chartComparison = view.findViewById<BarChart>(R.id.chartComparison)
+        val mtdTotal = viewModel.mtdTotal.value?.toFloat() ?: 0f
+        val lmtdTotal = viewModel.lmtdTotal.value?.toFloat() ?: 0f
+
+        val compEntries = listOf(
+            BarEntry(0f, mtdTotal),
+            BarEntry(1f, lmtdTotal)
+        )
+
+        val dsComp = BarDataSet(compEntries, "MTD vs LMTD").apply {
+            colors = listOf(Color.parseColor("#1428A0"), Color.GRAY)
+            valueTextSize = 12f
+            valueFormatter = currencyFormatter
+        }
+
+        chartComparison.apply {
+            data = BarData(dsComp)
+            description.isEnabled = false
+            legend.isEnabled = false
+            xAxis.position = XAxis.XAxisPosition.BOTTOM
+            xAxis.valueFormatter = IndexAxisValueFormatter(listOf("MTD", "LMTD"))
+            xAxis.granularity = 1f
+            xAxis.setDrawGridLines(false)
+            axisLeft.valueFormatter = currencyFormatter
+            axisLeft.axisMinimum = 0f
+            axisRight.isEnabled = false
+            animateY(500)
+            invalidate()
+        }
 
         // --- PART A: Weekly Stacked Chart Logic ---
         val weeklyData = Array(4) { FloatArray(fixedBrands.size) }
@@ -150,8 +186,13 @@ class AnalyticsFragment : Fragment() {
             stackLabels = fixedBrands.toTypedArray()
             valueTextSize = 10f
             valueFormatter = formatter
-            valueTextColor = Color.WHITE
+            // FIX: Set value text color to Black for visibility
+            valueTextColor = Color.BLACK
         }
+
+        // FIX: Add Custom MarkerView
+        val mv = CustomMarkerView(requireContext(), R.layout.custom_marker_view)
+        chartWeekly.marker = mv
 
         chartWeekly.apply {
             data = BarData(dsWeekly)
@@ -297,6 +338,39 @@ class AnalyticsFragment : Fragment() {
             "70K - 100K" -> 7
             "100K+" -> 8
             else -> 9
+        }
+    }
+
+    inner class CustomMarkerView(context: android.content.Context, layoutResource: Int) : MarkerView(context, layoutResource) {
+        private val tvContent: TextView = findViewById(R.id.tvContent)
+
+        override fun refreshContent(e: com.github.mikephil.charting.data.Entry?, highlight: Highlight?) {
+            if (e is BarEntry) {
+                if (e.yVals != null) {
+                    // Stacked Bar: Show breakdown
+                    val sb = StringBuilder()
+                    for (i in e.yVals.indices) {
+                        if (e.yVals[i] > 0) {
+                            if (sb.isNotEmpty()) sb.append("\n")
+                            // We need brand name. We know fixedBrands order matches stack order.
+                            val brand = if (i < fixedBrands.size) fixedBrands[i] else "Unknown"
+                            val value = e.yVals[i]
+                            val valStr = if (isValueMode) currencyFormatter.getFormattedValue(value) else value.toInt().toString()
+                            sb.append("$brand: $valStr")
+                        }
+                    }
+                    tvContent.text = sb.toString()
+                } else {
+                    // Normal Bar
+                    val valStr = if (isValueMode) currencyFormatter.getFormattedValue(e.y) else e.y.toInt().toString()
+                    tvContent.text = valStr
+                }
+            }
+            super.refreshContent(e, highlight)
+        }
+
+        override fun getOffset(): MPPointF {
+            return MPPointF(-(width / 2).toFloat(), -height.toFloat())
         }
     }
 }
