@@ -58,6 +58,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Detailed Log (Super Matrix)"
-        android:backgroundTint="@color/textGreen"/>
+        android:backgroundTint="@color/textGreen"
+        android:layout_marginBottom="8dp"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnPriceSegment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Price Segment Analysis (PDF)"
+        android:backgroundTint="@color/primaryBlue"/>
 
 </LinearLayout>

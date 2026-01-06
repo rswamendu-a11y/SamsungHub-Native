@@ -26,7 +26,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-enum class ReportType { MATRIX, DETAILED, MASTER }
+enum class ReportType { MATRIX, DETAILED, MASTER, PRICE_SEGMENT_ONLY }
 
 object PdfReportGenerator {
 
@@ -47,6 +47,7 @@ object PdfReportGenerator {
                 ReportType.MATRIX -> "Matrix"
                 ReportType.DETAILED -> "Detailed"
                 ReportType.MASTER -> "Master"
+                ReportType.PRICE_SEGMENT_ONLY -> "Price_Segment_Analysis"
             }
             val fileName = "Sales_Report_${typeSuffix}_${monthName.replace(" ", "_")}.pdf"
 
@@ -75,7 +76,12 @@ object PdfReportGenerator {
                 // Common Header Info
                 val headerTitle = "SALES REPORT ($typeSuffix) - $monthName"
 
-                if (type == ReportType.MATRIX) {
+                if (type == ReportType.PRICE_SEGMENT_ONLY) {
+                    addHeader(document, headerTitle)
+                    addSubHeader(document, "Outlet: $outletName | SEC: $secName")
+                    drawSegmentAnalysis(document, salesList)
+                }
+                else if (type == ReportType.MATRIX) {
                     addHeader(document, headerTitle)
                     addSubHeader(document, "Outlet: $outletName | SEC: $secName")
                     drawMatrixTable(document, salesList)

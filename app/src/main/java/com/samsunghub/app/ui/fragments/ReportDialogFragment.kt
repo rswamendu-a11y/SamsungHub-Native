@@ -55,6 +55,7 @@ class ReportDialogFragment : DialogFragment() {
             val type = when(v.id) {
                 R.id.btnMatrix -> com.samsunghub.app.utils.ReportType.MATRIX
                 R.id.btnDetailed -> com.samsunghub.app.utils.ReportType.DETAILED
+                R.id.btnPriceSegment -> com.samsunghub.app.utils.ReportType.PRICE_SEGMENT_ONLY
                 else -> com.samsunghub.app.utils.ReportType.MASTER
             }
 

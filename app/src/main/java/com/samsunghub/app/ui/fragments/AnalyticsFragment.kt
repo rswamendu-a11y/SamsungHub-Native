@@ -46,7 +46,7 @@ class AnalyticsFragment : Fragment() {
     private fun upd(l: List<SaleEntry>) {
         currentList = l
         updWk(l); updBr(l); updTbl(l)
-        b.chartComparison.visibility=View.GONE
+        // b.chartComparison.visibility=View.GONE // Removed to prevent crash
     }
 
     private fun getV(s: SaleEntry) = if (isVol) s.quantity.toFloat() else s.totalValue.toFloat()
@@ -89,6 +89,9 @@ class AnalyticsFragment : Fragment() {
             data = BarData(set); data.barWidth = 0.5f
             xAxis.valueFormatter = IndexAxisValueFormatter(labs)
             xAxis.granularity=1f; xAxis.labelCount=labs.size
+            xAxis.labelRotationAngle = -45f
+            xAxis.position = XAxis.XAxisPosition.BOTTOM
+            setDrawValueAboveBar(true)
             invalidate()
         }
     }
