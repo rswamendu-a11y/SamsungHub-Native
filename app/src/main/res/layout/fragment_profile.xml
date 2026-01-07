@@ -80,7 +80,7 @@
         android:id="@+id/btnBackup"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Master Backup (.xlsx)"
+        android:text="Master Backup (.csv)"
         android:backgroundTint="@color/textGreen"
         android:layout_marginTop="8dp"/>
 

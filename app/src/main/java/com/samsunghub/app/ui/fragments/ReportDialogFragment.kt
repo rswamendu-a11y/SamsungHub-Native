@@ -1,83 +1,95 @@
 package com.samsunghub.app.ui.fragments
 
-import android.app.AlertDialog
-import android.app.Dialog
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.NumberPicker
+import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.core.content.FileProvider
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.activityViewModels
-import com.google.android.material.button.MaterialButton
-import com.samsunghub.app.R
+import androidx.lifecycle.lifecycleScope
+import com.samsunghub.app.databinding.DialogReportBinding
+import kotlinx.coroutines.launch
 import com.samsunghub.app.ui.SalesViewModel
+import com.samsunghub.app.utils.PdfReportGenerator
+import com.samsunghub.app.utils.ReportType
+import com.samsunghub.app.utils.UserPrefs // Import Added
+import java.io.File
 import java.util.Calendar
 
 class ReportDialogFragment : DialogFragment() {
 
+    private var _binding: DialogReportBinding? = null
+    private val binding get() = _binding!!
     private val viewModel: SalesViewModel by activityViewModels()
 
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val builder = AlertDialog.Builder(requireContext())
-        val view = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_report, null)
-
-        setupUI(view)
-
-        builder.setView(view)
-        return builder.create()
+    override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
+        _binding = DialogReportBinding.inflate(i, c, false)
+        return binding.root
     }
 
-    private fun setupUI(view: View) {
-        val monthPicker = view.findViewById<NumberPicker>(R.id.pickerMonth)
-        val yearPicker = view.findViewById<NumberPicker>(R.id.pickerYear)
-        val btnMatrix = view.findViewById<MaterialButton>(R.id.btnMatrix)
-        val btnDetailed = view.findViewById<MaterialButton>(R.id.btnDetailed)
-        val btnMaster = view.findViewById<MaterialButton>(R.id.btnMaster)
-        val btnPriceSegment = view.findViewById<MaterialButton>(R.id.btnPriceSegment)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        setupDateSpinners()
 
-        val months = arrayOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-        monthPicker.minValue = 0
-        monthPicker.maxValue = 11
-        monthPicker.displayedValues = months
+        binding.btnMatrix.setOnClickListener { generate(ReportType.MATRIX_ONLY) }
+        binding.btnDetailed.setOnClickListener { generate(ReportType.DETAILED_ONLY) }
+        binding.btnMaster.setOnClickListener { generate(ReportType.MASTER_REPORT) }
+        binding.btnPriceSegmentPdf.setOnClickListener { generate(ReportType.PRICE_SEGMENT_ONLY) }
+    }
 
-        val currentCal = viewModel.selectedDate.value ?: Calendar.getInstance()
-        monthPicker.value = currentCal.get(Calendar.MONTH)
+    private fun generate(type: ReportType) {
+        val month = binding.spinnerMonth.selectedItemPosition
+        val year = binding.spinnerYear.selectedItem.toString().toInt()
 
-        val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-        yearPicker.minValue = 2020
-        yearPicker.maxValue = currentYear + 5
-        yearPicker.value = currentCal.get(Calendar.YEAR)
+        // FIX: Fetch fresh data from UserPrefs
+        val outletName = UserPrefs.getOutletName(requireContext())
+        val secName = UserPrefs.getSecName(requireContext()) // This was missing/stale
 
-        val listener = View.OnClickListener { v ->
-            val selectedYear = yearPicker.value
-            val selectedMonth = monthPicker.value
-            val type = when(v.id) {
-                R.id.btnMatrix -> com.samsunghub.app.utils.ReportType.MATRIX
-                R.id.btnDetailed -> com.samsunghub.app.utils.ReportType.DETAILED
-                R.id.btnPriceSegment -> com.samsunghub.app.utils.ReportType.PRICE_SEGMENT_ONLY
-                else -> com.samsunghub.app.utils.ReportType.MASTER
-            }
+        viewModel.getSalesForMonth(month, year) { sales ->
+            if (sales.isNotEmpty()) {
+                val pdfGenerator = PdfReportGenerator
+                val monthName = "${binding.spinnerMonth.selectedItem} $year"
 
-            viewModel.generatePdfForMonth(requireContext(), selectedYear, selectedMonth, type) { uri ->
-                if (uri != null) {
-                    Toast.makeText(requireContext(), "PDF Saved", Toast.LENGTH_SHORT).show()
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, "application/pdf")
-                        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                androidx.lifecycle.lifecycleScope.launch {
+                     val uri = pdfGenerator.generateReport(requireContext(), sales, monthName, outletName, secName, type)
+                     if (uri != null) {
+                        openPdf(uri)
+                        Toast.makeText(requireContext(), "PDF Saved", Toast.LENGTH_SHORT).show()
+                        dismiss()
+                    } else {
+                        Toast.makeText(requireContext(), "Error generating PDF", Toast.LENGTH_SHORT).show()
                     }
-                    startActivity(Intent.createChooser(intent, "Open Report"))
-                } else {
-                    Toast.makeText(requireContext(), "Failed", Toast.LENGTH_SHORT).show()
                 }
-                dismiss()
+            } else {
+                Toast.makeText(requireContext(), "No sales found for this month", Toast.LENGTH_SHORT).show()
             }
         }
-
-        btnMatrix.setOnClickListener(listener)
-        btnDetailed.setOnClickListener(listener)
-        btnMaster.setOnClickListener(listener)
-        btnPriceSegment.setOnClickListener(listener)
     }
+
+    private fun openPdf(uri: Uri) {
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.setDataAndType(uri, "application/pdf")
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        startActivity(Intent.createChooser(intent, "Open Report"))
+    }
+
+    private fun setupDateSpinners() {
+        val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+        val years = listOf("2024", "2025", "2026", "2027", "2028")
+
+        binding.spinnerMonth.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, months)
+        binding.spinnerYear.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, years)
+
+        val cal = Calendar.getInstance()
+        binding.spinnerMonth.setSelection(cal.get(Calendar.MONTH))
+        val currentYearIndex = years.indexOf(cal.get(Calendar.YEAR).toString())
+        if (currentYearIndex != -1) binding.spinnerYear.setSelection(currentYearIndex)
+    }
+
+    override fun onDestroyView() { super.onDestroyView(); _binding = null }
 }

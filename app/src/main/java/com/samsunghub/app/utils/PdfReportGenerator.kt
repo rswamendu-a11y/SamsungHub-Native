@@ -26,7 +26,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-enum class ReportType { MATRIX, DETAILED, MASTER, PRICE_SEGMENT_ONLY }
+enum class ReportType { MATRIX_ONLY, DETAILED_ONLY, MASTER_REPORT, PRICE_SEGMENT_ONLY }
 
 object PdfReportGenerator {
 
@@ -34,7 +34,7 @@ object PdfReportGenerator {
     private val HEADER_BG_COLOR = DeviceRgb(33, 150, 243)
     private val HEADER_TEXT_COLOR = ColorConstants.WHITE
 
-    suspend fun generateMonthlyReport(
+    suspend fun generateReport(
         context: Context,
         salesList: List<SaleEntry>,
         monthName: String,
@@ -44,9 +44,9 @@ object PdfReportGenerator {
     ): Uri? {
         return try {
             val typeSuffix = when(type) {
-                ReportType.MATRIX -> "Matrix"
-                ReportType.DETAILED -> "Detailed"
-                ReportType.MASTER -> "Master"
+                ReportType.MATRIX_ONLY -> "Matrix"
+                ReportType.DETAILED_ONLY -> "Detailed"
+                ReportType.MASTER_REPORT -> "Master"
                 ReportType.PRICE_SEGMENT_ONLY -> "Price_Segment_Analysis"
             }
             val fileName = "Sales_Report_${typeSuffix}_${monthName.replace(" ", "_")}.pdf"
@@ -81,12 +81,12 @@ object PdfReportGenerator {
                     addSubHeader(document, "Outlet: $outletName | SEC: $secName")
                     drawSegmentAnalysis(document, salesList)
                 }
-                else if (type == ReportType.MATRIX) {
+                else if (type == ReportType.MATRIX_ONLY) {
                     addHeader(document, headerTitle)
                     addSubHeader(document, "Outlet: $outletName | SEC: $secName")
                     drawMatrixTable(document, salesList)
                 }
-                else if (type == ReportType.DETAILED) {
+                else if (type == ReportType.DETAILED_ONLY) {
                     addHeader(document, headerTitle)
                     addSubHeader(document, "Outlet: $outletName | SEC: $secName")
                     drawBrandPerformance(document, salesList)
@@ -94,7 +94,7 @@ object PdfReportGenerator {
                     document.add(AreaBreak(AreaBreakType.NEXT_PAGE))
                     drawTransactionLog(document, salesList)
                 }
-                else if (type == ReportType.MASTER) {
+                else if (type == ReportType.MASTER_REPORT) {
                     // Landscape Page 1
                     addHeader(document, headerTitle)
                     addSubHeader(document, "Outlet: $outletName | SEC: $secName")
