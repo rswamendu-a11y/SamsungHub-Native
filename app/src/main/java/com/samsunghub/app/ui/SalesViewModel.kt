@@ -156,10 +156,12 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun exportBackup(context: Context, callback: (Boolean) -> Unit) {
-        // Fix: Use the correct function name and pass the Application Context
-        com.samsunghub.app.utils.BackupManager.exportDatabaseToExcel(getApplication())
-        callback(true) // Always true since Manager handles the UI
+    fun exportBackup(uri: Uri, callback: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val list = repository.getAllSalesSync()
+            com.samsunghub.app.utils.BackupManager.writeListToCsv(getApplication(), uri, list)
+            callback(true)
+        }
     }
 
     fun restoreData(list: List<SaleEntry>) {

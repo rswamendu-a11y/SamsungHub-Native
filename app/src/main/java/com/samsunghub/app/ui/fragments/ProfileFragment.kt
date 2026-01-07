@@ -10,10 +10,36 @@ import com.samsunghub.app.databinding.FragmentProfileBinding
 import com.samsunghub.app.utils.BackupManager
 import com.samsunghub.app.utils.UserPrefs
 
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
+import com.samsunghub.app.ui.SalesViewModel
+import kotlinx.coroutines.launch
+
 class ProfileFragment : Fragment() {
 
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
+    private val viewModel: SalesViewModel by activityViewModels()
+
+    private val backupLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        if (uri != null) {
+            viewModel.exportBackup(uri) { success ->
+                // ViewModel/Manager handles Toast
+            }
+        }
+    }
+
+    private val restoreLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            lifecycleScope.launch {
+                BackupManager.importFromCsv(requireContext(), uri)
+                // Refresh data if needed, or Restart App?
+                // Repository Flow updates automatically, but might be safer to restart.
+                // For now, assume flow updates.
+            }
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -53,12 +79,12 @@ class ProfileFragment : Fragment() {
 
         // Master Backup
         binding.btnBackup.setOnClickListener {
-            BackupManager.exportDatabaseToExcel(requireContext())
+            backupLauncher.launch("SamsungHub_Backup_${System.currentTimeMillis()}.csv")
         }
 
-        // Master Restore (DISABLED TO FIX BUILD)
+        // Master Restore
         binding.btnRestore.setOnClickListener {
-            Toast.makeText(requireContext(), "Restore coming in next update", Toast.LENGTH_SHORT).show()
+            restoreLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "application/vnd.ms-excel"))
         }
 
         // Factory Reset
