@@ -9,6 +9,8 @@ import androidx.fragment.app.activityViewModels
 import com.github.mikephil.charting.components.*
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.*
+import com.github.mikephil.charting.listener.OnChartValueSelectedListener
+import com.github.mikephil.charting.highlight.Highlight
 import com.samsunghub.app.databinding.FragmentAnalyticsBinding
 import com.samsunghub.app.data.SaleEntry
 import com.samsunghub.app.ui.SalesViewModel
@@ -23,6 +25,7 @@ class AnalyticsFragment : Fragment() {
 
     private val cols = intArrayOf(Color.parseColor("#2196F3"), Color.parseColor("#9E9E9E"), Color.parseColor("#4CAF50"), Color.parseColor("#9C27B0"), Color.parseColor("#009688"), Color.parseColor("#FF9800"), Color.parseColor("#3F51B5"), Color.BLACK)
     private val brs = listOf("Samsung", "Apple", "Realme", "Oppo", "Vivo", "Xiaomi", "Moto", "Others")
+    private val rngs = listOf("<10K", "10K-15K", "15K-20K", "20K-30K", "30K-40K", "40K-70K", "70K-100K", ">100K")
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View { _b = FragmentAnalyticsBinding.inflate(i, c, false); return b.root }
 
@@ -55,9 +58,35 @@ class AnalyticsFragment : Fragment() {
         }
         val set = BarDataSet((0..3).map { BarEntry(it.toFloat(), d[it]) }, "Weekly Achievement")
         set.colors = cols.toList(); set.stackLabels = brs.toTypedArray()
-        set.valueFormatter = getF(); set.valueTextColor = Color.BLACK
-        set.valueTextSize = 10f
-        b.chartWeekly.apply { data = BarData(set); xAxis.valueFormatter = IndexAxisValueFormatter(listOf("Wk1","Wk2","Wk3","Wk4")); axisLeft.valueFormatter = getF(true); legend.isWordWrapEnabled=true; legend.orientation=Legend.LegendOrientation.HORIZONTAL; invalidate() }
+
+        // HIDE VALUES to prevent overlap
+        set.setDrawValues(false)
+
+        b.chartWeekly.apply {
+            data = BarData(set)
+            xAxis.valueFormatter = IndexAxisValueFormatter(listOf("Wk1","Wk2","Wk3","Wk4"))
+            axisLeft.valueFormatter = getF(true)
+            legend.isWordWrapEnabled=true; legend.orientation=Legend.LegendOrientation.HORIZONTAL
+
+            // CLICK LISTENER: Show details on tap
+            setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
+                override fun onValueSelected(e: Entry?, h: Highlight?) {
+                    if (e is BarEntry) {
+                        val wkIdx = e.x.toInt()
+                        val vals = e.yVals // Array of values in this stack
+                        if (vals != null) {
+                            var msg = "Week ${wkIdx + 1}:\n"
+                            vals.forEachIndexed { i, v ->
+                                if (v > 0) msg += "${brs[i]}: ${getF().getFormattedValue(v)}\n"
+                            }
+                            Toast.makeText(requireContext(), msg.trim(), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                override fun onNothingSelected() {}
+            })
+            invalidate()
+        }
     }
 
     private fun updBr(l: List<SaleEntry>) {
@@ -66,26 +95,26 @@ class AnalyticsFragment : Fragment() {
             val total = map[b]?.filter { it.quantity > 0 }?.sumOf { getV(it).toDouble() }?.toFloat() ?: 0f
             ents.add(BarEntry(i++, total)); labs.add(b)
         }
-        val set = BarDataSet(ents, "Brand Performance"); set.colors = cols.toList(); set.valueFormatter = getF(); set.valueTextSize = 10f
-        b.chartBrand.apply { data = BarData(set); data.barWidth = 0.6f; xAxis.valueFormatter = IndexAxisValueFormatter(labs); xAxis.granularity=1f; xAxis.labelCount=labs.size; xAxis.labelRotationAngle = -45f; axisLeft.valueFormatter = getF(true); axisRight.valueFormatter = getF(true); invalidate() }
+        val set = BarDataSet(ents, "Brand Performance")
+        set.colors = cols.toList()
+        set.valueFormatter = getF(); set.valueTextSize = 10f
+        b.chartBrand.apply {
+            data = BarData(set); data.barWidth = 0.6f
+            xAxis.valueFormatter = IndexAxisValueFormatter(labs); xAxis.granularity=1f; xAxis.labelCount=labs.size
+            xAxis.labelRotationAngle = -45f
+            axisLeft.valueFormatter = getF(true); axisRight.valueFormatter = getF(true)
+            invalidate()
+        }
     }
 
     private fun updTbl(l: List<SaleEntry>) {
         try {
             val t = b.root.findViewById<TableLayout>(com.samsunghub.app.R.id.tablePriceSegments) ?: return
             t.removeAllViews()
-            val rngs = listOf("<10K", "10K-15K", "15K-20K", "20K-30K", "30K-40K", "40K-70K", "70K-100K", ">100K")
-
-            // Header
-            val hr = TableRow(context)
-            hr.addView(tv("Brand", true))
-            rngs.forEach { hr.addView(tv(it, true)) }
-            t.addView(hr)
-
-            // Body
+            val hr = TableRow(context); hr.addView(tv("Brand", true))
+            rngs.forEach { hr.addView(tv(it, true)) }; t.addView(hr)
             brs.forEach { b ->
-                val r = TableRow(context)
-                r.addView(tv(b, false, true))
+                val r = TableRow(context); r.addView(tv(b, false, true))
                 val sl = l.filter { it.brand == b }
                 rngs.indices.forEach { i ->
                     val c = sl.count { s ->
@@ -101,12 +130,6 @@ class AnalyticsFragment : Fragment() {
             }
         } catch (e: Exception) {}
     }
-
-    private fun tv(txt: String, bg: Boolean=false, bld: Boolean=false): TextView = TextView(context).apply {
-        text=txt; setPadding(8,8,8,8); gravity=Gravity.CENTER
-        if(bg) setBackgroundColor(Color.LTGRAY)
-        if(bld) setTypeface(null, android.graphics.Typeface.BOLD)
-    }
-
+    private fun tv(txt: String, bg: Boolean=false, bld: Boolean=false): TextView = TextView(context).apply { text=txt; setPadding(8,8,8,8); gravity=Gravity.CENTER; if(bg) setBackgroundColor(Color.LTGRAY); if(bld) setTypeface(null, android.graphics.Typeface.BOLD) }
     override fun onDestroyView() { super.onDestroyView(); _b = null }
 }
