@@ -8,17 +8,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
-import androidx.core.content.FileProvider
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.samsunghub.app.databinding.DialogReportBinding
-import kotlinx.coroutines.launch
 import com.samsunghub.app.ui.SalesViewModel
 import com.samsunghub.app.utils.PdfReportGenerator
 import com.samsunghub.app.utils.ReportType
-import com.samsunghub.app.utils.UserPrefs // Import Added
-import java.io.File
+import com.samsunghub.app.utils.UserPrefs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Calendar
 
 class ReportDialogFragment : DialogFragment() {
@@ -45,28 +45,29 @@ class ReportDialogFragment : DialogFragment() {
     private fun generate(type: ReportType) {
         val month = binding.spinnerMonth.selectedItemPosition
         val year = binding.spinnerYear.selectedItem.toString().toInt()
-
-        // FIX: Fetch fresh data from UserPrefs
         val outletName = UserPrefs.getOutletName(requireContext())
-        val secName = UserPrefs.getSecName(requireContext()) // This was missing/stale
+        val secName = UserPrefs.getSecName(requireContext())
 
         viewModel.getSalesForMonth(month, year) { sales ->
             if (sales.isNotEmpty()) {
-                val pdfGenerator = PdfReportGenerator
+                val pdfGenerator = PdfReportGenerator // Using Object
                 val monthName = "${binding.spinnerMonth.selectedItem} $year"
 
-                androidx.lifecycle.lifecycleScope.launch {
-                     val uri = pdfGenerator.generateReport(requireContext(), sales, monthName, outletName, secName, type)
-                     if (uri != null) {
-                        openPdf(uri)
-                        Toast.makeText(requireContext(), "PDF Saved", Toast.LENGTH_SHORT).show()
-                        dismiss()
-                    } else {
-                        Toast.makeText(requireContext(), "Error generating PDF", Toast.LENGTH_SHORT).show()
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val uri = pdfGenerator.generateReport(requireContext(), sales, monthName, outletName, secName, type)
+
+                    withContext(Dispatchers.Main) {
+                        if (uri != null) {
+                            openPdf(uri)
+                            Toast.makeText(requireContext(), "PDF Saved", Toast.LENGTH_SHORT).show()
+                            dismiss()
+                        } else {
+                            Toast.makeText(requireContext(), "Error generating PDF", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             } else {
-                Toast.makeText(requireContext(), "No sales found for this month", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "No sales found", Toast.LENGTH_SHORT).show()
             }
         }
     }

@@ -26,8 +26,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-enum class ReportType { MATRIX_ONLY, DETAILED_ONLY, MASTER_REPORT, PRICE_SEGMENT_ONLY }
-
 object PdfReportGenerator {
 
     private const val TAG = "PdfReportGenerator"
