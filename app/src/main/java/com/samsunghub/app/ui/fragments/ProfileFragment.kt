@@ -48,8 +48,7 @@ class ProfileFragment : Fragment() {
 
         // Set PIN
         binding.btnSetPin.setOnClickListener {
-            // Simple Dialog Logic to be added later or handled by Activity
-            Toast.makeText(requireContext(), "PIN Feature Active", Toast.LENGTH_SHORT).show()
+            showSetPinDialog()
         }
 
         // Master Backup
@@ -67,6 +66,28 @@ class ProfileFragment : Fragment() {
             // Add reset logic here if needed, or just Toast for now to ensure safety
              Toast.makeText(requireContext(), "Reset feature active", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun showSetPinDialog() {
+        val input = android.widget.EditText(requireContext())
+        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        input.filters = arrayOf(android.text.InputFilter.LengthFilter(4))
+        input.hint = "Enter 4-Digit PIN"
+
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Set Login PIN")
+            .setView(input)
+            .setPositiveButton("Save") { _, _ ->
+                val pin = input.text.toString()
+                if (pin.length == 4) {
+                    UserPrefs.savePin(requireContext(), pin)
+                    Toast.makeText(requireContext(), "PIN Set Successfully", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), "PIN must be 4 digits", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     override fun onDestroyView() {

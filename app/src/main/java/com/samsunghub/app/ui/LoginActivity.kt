@@ -1,8 +1,6 @@
 package com.samsunghub.app.ui
 
-import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
@@ -12,21 +10,17 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.samsunghub.app.MainActivity
 import com.samsunghub.app.R
+import com.samsunghub.app.utils.UserPrefs
 
 class LoginActivity : AppCompatActivity() {
 
-    private lateinit var prefs: SharedPreferences
-    private var savedPin: String? = null
     private var enteredPin = StringBuilder()
     private val dots = ArrayList<View>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        prefs = getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-        savedPin = prefs.getString("app_pin", null)
-
-        if (savedPin.isNullOrEmpty()) {
+        if (!UserPrefs.isPinSet(this)) {
             startMainActivity()
             return
         }
@@ -92,6 +86,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun validatePin() {
+        val savedPin = UserPrefs.getPin(this)
         if (enteredPin.toString() == savedPin) {
             startMainActivity()
         } else {
