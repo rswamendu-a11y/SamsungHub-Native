@@ -45,28 +45,29 @@ class ReportDialogFragment : DialogFragment() {
     private fun generate(type: ReportType) {
         val month = binding.spinnerMonth.selectedItemPosition
         val year = binding.spinnerYear.selectedItem.toString().toInt()
-        val outletName = UserPrefs.getOutletName(requireContext())
-        val secName = UserPrefs.getSecName(requireContext())
+        val context = requireContext()
+        val outletName = UserPrefs.getOutletName(context)
+        val secName = UserPrefs.getSecName(context)
 
         viewModel.getSalesForMonth(month, year) { sales ->
             if (sales.isNotEmpty()) {
                 val monthName = "${binding.spinnerMonth.selectedItem} $year"
 
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val uri = PdfReportGenerator.generateReport(requireContext(), sales, monthName, outletName, secName, type)
+                    val uri = PdfReportGenerator.generateReport(context, sales, monthName, outletName, secName, type)
 
                     withContext(Dispatchers.Main) {
                         if (uri != null) {
                             openPdf(uri)
-                            Toast.makeText(requireContext(), "PDF Saved", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "PDF Saved", Toast.LENGTH_SHORT).show()
                             dismiss()
                         } else {
-                            Toast.makeText(requireContext(), "Error generating PDF", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Error generating PDF", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
             } else {
-                Toast.makeText(requireContext(), "No sales found", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "No sales found", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -81,10 +82,8 @@ class ReportDialogFragment : DialogFragment() {
     private fun setupDateSpinners() {
         val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
         val years = listOf("2024", "2025", "2026", "2027", "2028")
-
         binding.spinnerMonth.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, months)
         binding.spinnerYear.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, years)
-
         val cal = Calendar.getInstance()
         binding.spinnerMonth.setSelection(cal.get(Calendar.MONTH))
         val currentYearIndex = years.indexOf(cal.get(Calendar.YEAR).toString())
