@@ -6,7 +6,8 @@ import com.itextpdf.kernel.pdf.PdfDocument; import com.itextpdf.kernel.pdf.PdfWr
 import com.itextpdf.layout.element.*; import com.itextpdf.layout.properties.*; import com.samsunghub.app.data.SaleEntry
 import java.io.File; import java.text.DecimalFormat; import java.text.SimpleDateFormat; import java.util.*
 
-class PdfReportGenerator {
+// CHANGE: 'object' instead of 'class' makes it static/singleton
+object PdfReportGenerator {
     private val df = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()); private val nf = DecimalFormat("#,##,###.00")
     private val blue = DeviceRgb(33, 150, 243); private val white = ColorConstants.WHITE
 
@@ -17,7 +18,6 @@ class PdfReportGenerator {
             if (type == ReportType.MATRIX_ONLY || type == ReportType.MASTER_REPORT) doc.pdfDocument.defaultPageSize = PageSize.A4.rotate()
             doc.setMargins(20f,20f,20f,20f)
 
-            // Header
             doc.add(Paragraph("${type.name.replace("_"," ")} - $mth").setBold().setFontSize(14f).setTextAlignment(TextAlignment.CENTER).setBackgroundColor(ColorConstants.CYAN).setFontColor(white))
             doc.add(Paragraph("Outlet: $out | SEC: $sec").setBold().setFontSize(10f).setTextAlignment(TextAlignment.CENTER))
             doc.add(Paragraph("\n"))
