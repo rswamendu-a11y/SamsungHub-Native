@@ -50,11 +50,10 @@ class ReportDialogFragment : DialogFragment() {
 
         viewModel.getSalesForMonth(month, year) { sales ->
             if (sales.isNotEmpty()) {
-                val pdfGenerator = PdfReportGenerator // Using Object
                 val monthName = "${binding.spinnerMonth.selectedItem} $year"
 
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val uri = pdfGenerator.generateReport(requireContext(), sales, monthName, outletName, secName, type)
+                    val uri = PdfReportGenerator.generateReport(requireContext(), sales, monthName, outletName, secName, type)
 
                     withContext(Dispatchers.Main) {
                         if (uri != null) {
