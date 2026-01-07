@@ -14,7 +14,6 @@ import com.samsunghub.app.data.AppDatabase
 import com.samsunghub.app.data.SaleEntry
 import com.samsunghub.app.data.SalesRepository
 import com.samsunghub.app.utils.BackupManager
-import com.samsunghub.app.utils.PdfReportGenerator
 import com.samsunghub.app.utils.ReportType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -144,23 +143,6 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             val (start, end) = repository.getMonthRange(year, month)
             val list = repository.getSalesForRange(start, end).first()
             callback(list)
-        }
-    }
-
-    fun generatePdfForMonth(context: Context, year: Int, month: Int, type: ReportType, callback: (Uri?) -> Unit) {
-        viewModelScope.launch {
-            val (start, end) = repository.getMonthRange(year, month)
-            val list = repository.getSalesForRange(start, end).first()
-            val cal = Calendar.getInstance().apply { set(year, month, 1) }
-            val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(cal.time)
-
-            // Fetch outlet info
-            val prefs = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-            val outletName = prefs.getString("outlet_name", "M/S EXCLUSIVE") ?: "M/S EXCLUSIVE"
-            val secName = prefs.getString("sec_name", "") ?: ""
-
-            val uri = PdfReportGenerator.generateReport(context, list, monthName, outletName, secName, type)
-            callback(uri)
         }
     }
 
