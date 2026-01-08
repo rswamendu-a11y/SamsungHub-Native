@@ -8,7 +8,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.ListView
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
@@ -19,7 +18,6 @@ class ReportsFragment : Fragment() {
 
     private var _binding: FragmentReportsBinding? = null
     private val binding get() = _binding!!
-    private lateinit var adapter: ArrayAdapter<String>
     private var filesList: MutableList<File> = mutableListOf()
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
@@ -30,28 +28,17 @@ class ReportsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Setup List
-        adapter = ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, mutableListOf())
-        // We assume there is a ListView with id 'listViewReports' in the XML from previous steps.
-        // If the XML is custom, we might need to find it by ID or tag.
-        // Using a safe try-catch approach to find the list or creating a simple UI if missing.
-        // Assuming the ID is 'rvReports' or 'listReports'. Let's try finding views dynamically or use a simple logic.
-        // SAFE FIX: We will look for a ListView or RecyclerView.
-        // Actually, to be 100% safe without seeing XML, let's assume the binding has a 'listView' or 'recyclerView'.
-        // Based on Phase 5, it likely has a RecyclerView. Let's stick to standard logic.
+        // Setup RecyclerView
+        binding.rvReports.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(context)
 
-        // RE-READING: The user said "saved in reports section".
-        // I will implement a standard File Scanner here.
+        // Load data immediately (No Swipe Refresh)
         loadReports()
-
-        binding.swipeRefresh?.setOnRefreshListener { loadReports() }
     }
 
     private fun loadReports() {
-        binding.swipeRefresh?.isRefreshing = false
         filesList.clear()
 
-        // CORRECT PATH: Matches PdfReportGenerator
+        // CORRECT PATH: Documents folder
         val dir = requireContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
 
         if (dir != null && dir.exists()) {
@@ -60,12 +47,8 @@ class ReportsFragment : Fragment() {
             files?.forEach { filesList.add(it) }
         }
 
-        // Update Adapter (Assuming simple RecyclerView setup or ListView)
-        // Since I cannot see the XML, I will assume a RecyclerView 'rvReports' exists
-        // and set a simple Adapter.
-        val rv = binding.rvReports
-        rv.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(context)
-        rv.adapter = ReportAdapter(filesList, ::openFile, ::deleteFile)
+        // Set Adapter
+        binding.rvReports.adapter = ReportAdapter(filesList, ::openFile, ::deleteFile)
 
         if (filesList.isEmpty()) {
             Toast.makeText(context, "No Reports Found", Toast.LENGTH_SHORT).show()
@@ -85,13 +68,17 @@ class ReportsFragment : Fragment() {
     }
 
     private fun deleteFile(file: File) {
-        if (file.exists() && file.delete()) {
-            Toast.makeText(context, "Deleted", Toast.LENGTH_SHORT).show()
-            loadReports()
+        try {
+            if (file.exists() && file.delete()) {
+                Toast.makeText(context, "Deleted", Toast.LENGTH_SHORT).show()
+                loadReports() // Refresh list
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "Delete Failed", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // Inner Adapter Class for safety
+    // Standard Adapter
     class ReportAdapter(
         private val files: List<File>,
         private val onClick: (File) -> Unit,
@@ -100,20 +87,20 @@ class ReportsFragment : Fragment() {
 
         class Vh(v: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(v) {
             val txt: android.widget.TextView = v.findViewById(android.R.id.text1)
-            val del: android.widget.ImageView? = v.findViewById(android.R.id.icon) // Assuming simple_list_item_icon logic or similar
         }
 
         override fun onCreateViewHolder(p: ViewGroup, t: Int): Vh {
-            // Using standard layout to guarantee no crash
-            val v = LayoutInflater.from(p.context).inflate(android.R.layout.activity_list_item, p, false)
+            val v = LayoutInflater.from(p.context).inflate(android.R.layout.simple_list_item_1, p, false)
             return Vh(v)
         }
 
         override fun onBindViewHolder(h: Vh, i: Int) {
             h.txt.text = files[i].name
             h.itemView.setOnClickListener { onClick(files[i]) }
-            // Long press to delete if no icon
-            h.itemView.setOnLongClickListener { onDelete(files[i]); true }
+            h.itemView.setOnLongClickListener {
+                onDelete(files[i])
+                true
+            }
         }
         override fun getItemCount() = files.size
     }
