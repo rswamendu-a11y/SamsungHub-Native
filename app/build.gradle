@@ -1,22 +1,61 @@
 plugins {
     id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'kotlin-kapt'
 }
 
 android {
-    namespace 'com.example.enterprisehub'
+    namespace 'com.samsunghub.app'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.enterprisehub"
-        minSdk 24
+        applicationId "com.samsunghub.app"
+        minSdk 26
         targetSdk 34
         versionCode 1
         versionName "1.0"
+        multiDexEnabled true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    buildFeatures {
+        viewBinding true
     }
 }
 
 dependencies {
+    implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.10.0'
+    implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.room:room-runtime:2.6.1'
+    implementation 'androidx.room:room-ktx:2.6.1'
+    kapt 'androidx.room:room-compiler:2.6.1'
+    implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+    implementation 'com.itextpdf:itext7-core:7.2.5'
+
+    // Apache POI for Excel Export
+    implementation 'org.apache.poi:poi:5.2.3'
+    implementation 'org.apache.poi:poi-ooxml:5.2.3'
+    // Required XML dependencies for POI on Android
+    implementation 'com.fasterxml:aalto-xml:1.2.2'
+    implementation 'org.codehaus.woodstox:stax2-api:4.2.1'
+
+    // Lifecycle KTX (Required for viewModelScope and asLiveData)
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1'
+    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.6.1'
+
+    // Activity KTX (Required for 'by viewModels()' delegate)
+    implementation 'androidx.activity:activity-ktx:1.8.0'
+
+    // Fragment KTX (Good practice to add)
+    implementation 'androidx.fragment:fragment-ktx:1.6.2'
 }

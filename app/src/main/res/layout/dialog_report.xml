@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@android:color/white">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Monthly Report"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#3F51B5"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="24dp">
+
+        <Spinner
+            android:id="@+id/spinnerMonth"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="48dp"
+            android:layout_marginEnd="8dp"/>
+
+        <Spinner
+            android:id="@+id/spinnerYear"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="48dp"
+            android:layout_marginStart="8dp"/>
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnMatrix"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Matrix Overview (Landscape)"
+        android:backgroundTint="#3F51B5"
+        android:textColor="@android:color/white"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btnDetailed"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Detailed Report (Portrait)"
+        android:textColor="#3F51B5"
+        android:backgroundTint="@android:color/white"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btnMaster"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Detailed Log (Super Matrix)"
+        android:backgroundTint="#4CAF50"
+        android:textColor="@android:color/white"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btnPriceSegmentPdf"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Monthly Price Segment"
+        android:backgroundTint="#3F51B5"
+        android:textColor="@android:color/white"/>
+
+</LinearLayout>
