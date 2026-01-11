@@ -1,53 +1,102 @@
 package com.samsunghub.app.utils
 
-import android.content.Context; import android.net.Uri; import android.os.Environment; import androidx.core.content.FileProvider
-import com.itextpdf.kernel.colors.ColorConstants; import com.itextpdf.kernel.colors.DeviceRgb; import com.itextpdf.kernel.geom.PageSize
-import com.itextpdf.kernel.pdf.PdfDocument; import com.itextpdf.kernel.pdf.PdfWriter; import com.itextpdf.layout.Document
-import com.itextpdf.layout.element.*; import com.itextpdf.layout.properties.*; import com.samsunghub.app.data.SaleEntry
-import java.io.File; import java.text.DecimalFormat; import java.text.SimpleDateFormat; import java.util.*
+import android.content.Context
+import android.net.Uri
+import android.os.Environment
+import androidx.core.content.FileProvider
+import com.itextpdf.kernel.colors.ColorConstants
+import com.itextpdf.kernel.colors.DeviceRgb
+import com.itextpdf.kernel.geom.PageSize
+import com.itextpdf.kernel.pdf.PdfDocument
+import com.itextpdf.kernel.pdf.PdfWriter
+import com.itextpdf.layout.Document
+import com.itextpdf.layout.element.*
+import com.itextpdf.layout.properties.*
+import com.samsunghub.app.data.SaleEntry
+import java.io.File
+import java.text.DecimalFormat
+import java.text.SimpleDateFormat
+import java.util.*
 
 object PdfReportGenerator {
-    private val df = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()); private val nf = DecimalFormat("#,##,###.00")
-    private val blue = DeviceRgb(33, 150, 243); private val white = ColorConstants.WHITE
+    private val df = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+    private val nf = DecimalFormat("#,##,###.00")
+    private val blue = DeviceRgb(33, 150, 243)
+    private val white = ColorConstants.WHITE
 
     fun generateReport(ctx: Context, list: List<SaleEntry>, mth: String, out: String, sec: String, type: ReportType): Uri? {
         return try {
-            val f = File(ctx.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), "Report_${type.name}_${System.currentTimeMillis()}.pdf")
-            val doc = Document(PdfDocument(PdfWriter(f)))
-            if (type == ReportType.MATRIX_ONLY || type == ReportType.MASTER_REPORT) doc.pdfDocument.defaultPageSize = PageSize.A4.rotate()
-            doc.setMargins(20f,20f,20f,20f)
+            val fileName = "Report_${type.name}_${System.currentTimeMillis()}.pdf"
+            val file = File(ctx.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), fileName)
+
+            val writer = PdfWriter(file)
+            val pdf = PdfDocument(writer)
+
+            if (type == ReportType.MATRIX_ONLY || type == ReportType.MASTER_REPORT) {
+                pdf.defaultPageSize = PageSize.A4.rotate()
+            } else {
+                pdf.defaultPageSize = PageSize.A4
+            }
+
+            val doc = Document(pdf)
+            doc.setMargins(20f, 20f, 20f, 20f)
 
             // Header
-            doc.add(Paragraph("${type.name.replace("_"," ")} - $mth").setBold().setFontSize(14f).setTextAlignment(TextAlignment.CENTER).setBackgroundColor(ColorConstants.CYAN).setFontColor(white))
-            doc.add(Paragraph("Outlet: $out | SEC: $sec").setBold().setFontSize(10f).setTextAlignment(TextAlignment.CENTER))
+            val title = when(type) {
+                ReportType.MATRIX_ONLY -> "SALES MATRIX"
+                ReportType.PRICE_SEGMENT_ONLY -> "PRICE SEGMENT ANALYSIS"
+                else -> "SALES REPORT"
+            }
+
+            doc.add(Paragraph("$title - $mth").setBold().setFontSize(14f).setTextAlignment(TextAlignment.CENTER).setBackgroundColor(ColorConstants.CYAN).setFontColor(white))
+            doc.add(Paragraph("Outlet: $out | SEC: $sec").setBold().setFontSize(10f).setTextAlignment(TextAlignment.CENTER).setBackgroundColor(ColorConstants.LIGHT_GRAY))
             doc.add(Paragraph("\n"))
 
-            when(type) {
+            when (type) {
                 ReportType.MATRIX_ONLY -> mat(doc, list)
                 ReportType.PRICE_SEGMENT_ONLY -> seg(doc, list)
-                ReportType.DETAILED_ONLY -> { brd(doc, list); doc.add(Paragraph("\n")); seg(doc, list); doc.add(Paragraph("\n")); log(doc, list) }
-                else -> { mat(doc, list); doc.add(AreaBreak(AreaBreakType.NEXT_PAGE)); brd(doc, list); doc.add(Paragraph("\n")); seg(doc, list); doc.add(Paragraph("\n")); log(doc, list) }
+                ReportType.DETAILED_ONLY -> {
+                    brd(doc, list); doc.add(Paragraph("\n"))
+                    seg(doc, list); doc.add(Paragraph("\n"))
+                    log(doc, list)
+                }
+                else -> { // MASTER
+                    mat(doc, list); doc.add(AreaBreak(AreaBreakType.NEXT_PAGE))
+                    brd(doc, list); doc.add(Paragraph("\n"))
+                    seg(doc, list); doc.add(Paragraph("\n"))
+                    log(doc, list)
+                }
             }
+
             doc.close()
-            FileProvider.getUriForFile(ctx, "${ctx.packageName}.provider", f)
+            FileProvider.getUriForFile(ctx, "${ctx.packageName}.provider", file)
         } catch (e: Exception) { e.printStackTrace(); null }
     }
 
-    private fun head(t: Table, txt: String) = t.addHeaderCell(Cell().add(Paragraph(txt).setBold().setFontSize(9f)).setBackgroundColor(blue).setFontColor(white).setTextAlignment(TextAlignment.CENTER))
-    private fun cell(t: Table, txt: String, b: Boolean=false) = t.addCell(Cell().add(Paragraph(txt).setFontSize(8f).apply { if(b) setBold() }).setTextAlignment(TextAlignment.CENTER))
+    // --- DRAWING FUNCTIONS ---
+
+    private fun head(t: Table, txt: String) {
+        t.addHeaderCell(Cell().add(Paragraph(txt).setBold().setFontSize(8f)).setBackgroundColor(blue).setFontColor(white).setTextAlignment(TextAlignment.CENTER))
+    }
+
+    private fun cell(t: Table, txt: String, isBold: Boolean = false, alignLeft: Boolean = false) {
+        val p = Paragraph(txt).setFontSize(7f)
+        if (!alignLeft) p.setTextAlignment(TextAlignment.CENTER)
+        if (isBold) p.setBold()
+        t.addCell(Cell().add(p))
+    }
 
     private fun seg(doc: Document, list: List<SaleEntry>) {
         doc.add(Paragraph("Price Segment Analysis").setBold().setFontSize(12f))
         val t = Table(UnitValue.createPercentArray(floatArrayOf(2f,1f,1f,1f,1f,1f,1f,1f,1f))).useAllAvailableWidth()
-        val h = listOf("Brand","<10K","10-15K","15-20K","20-30K","30-40K","40-70K","70-100K",">100K")
-        h.forEach { head(t, it) }
-        val brs = listOf("Samsung","Apple","Realme","Oppo","Vivo","Xiaomi","Moto","Other")
-        brs.forEach { b ->
-            t.addCell(Cell().add(Paragraph(b).setBold().setFontSize(9f)))
-            val sl = list.filter { if(b=="Other") !brs.contains(it.brand) && it.brand!="Other" else it.brand==b }
+        listOf("Brand","<10K","10-15K","15-20K","20-30K","30-40K","40-70K","70-100K",">100K").forEach { head(t, it) }
+        val brands = listOf("Samsung", "Apple", "Realme", "Oppo", "Vivo", "Xiaomi", "Moto", "Other")
+        brands.forEach { b ->
+            cell(t, b, true)
+            val sl = list.filter { if(b=="Other") !brands.contains(it.brand) && it.brand!="Other" else it.brand==b }
             val cnt = IntArray(8)
             sl.forEach { s ->
-                if(s.quantity > 0) {
+                if (s.quantity > 0) {
                     val p = s.unitPrice
                     val i = when { p<10000->0; p<15000->1; p<20000->2; p<30000->3; p<40000->4; p<70000->5; p<100000->6; else->7 }
                     cnt[i] += s.quantity
@@ -61,14 +110,14 @@ object PdfReportGenerator {
     private fun brd(doc: Document, list: List<SaleEntry>) {
         doc.add(Paragraph("Brand Performance").setBold().setFontSize(12f))
         val t = Table(UnitValue.createPercentArray(floatArrayOf(2f,1f,1f))).useAllAvailableWidth()
-        listOf("Brand","Qty","Revenue").forEach { head(t, it) }
+        listOf("Brand", "Total Units", "Total Revenue").forEach { head(t, it) }
         var gq=0; var gv=0.0
         list.groupBy { it.brand }.forEach { (b, l) ->
             val q = l.sumOf { it.quantity }; val v = l.sumOf { it.totalValue }
             gq+=q; gv+=v
             cell(t, b); cell(t, q.toString()); cell(t, nf.format(v))
         }
-        cell(t, "TOTAL", true); cell(t, gq.toString(), true); cell(t, nf.format(gv), true)
+        cell(t, "GRAND TOTAL", true); cell(t, gq.toString(), true); cell(t, nf.format(gv), true)
         doc.add(t)
     }
 
@@ -85,24 +134,80 @@ object PdfReportGenerator {
 
     private fun mat(doc: Document, list: List<SaleEntry>) {
         doc.add(Paragraph("Matrix Overview").setBold().setFontSize(12f))
-        val t = Table(10).useAllAvailableWidth()
-        val brs = listOf("Samsung","Apple","Oppo","Vivo","Realme","Xiaomi","Moto","Other","TOTAL")
-        head(t, "Date"); brs.forEach { head(t, it) }
+
+        // 12 COLUMNS: Date(1.2) + 8 Brands(0.7) + Total(0.8) + Share(0.8) + Logs(3.0)
+        // This ensures it fits on Landscape
+        val t = Table(UnitValue.createPercentArray(floatArrayOf(1.2f, 0.7f, 0.7f, 0.7f, 0.7f, 0.7f, 0.7f, 0.7f, 0.7f, 0.8f, 0.8f, 3f))).useAllAvailableWidth()
+
+        val brands = listOf("Samsung","Apple","Oppo","Vivo","Realme","Xiaomi","Moto","Other")
+
+        // Header Row
+        head(t, "Date")
+        brands.forEach { head(t, it) }
+        head(t, "Tot")
+        head(t, "Sam%") // New Column
+        head(t, "Logs") // New Column
+
         val dates = list.groupBy { df.format(Date(it.timestamp)) }.toSortedMap()
-        val gq = IntArray(9)
+        val grandBrandQty = IntArray(8)
+        var grandTotalQty = 0
+        var grandSamQty = 0
+
         dates.forEach { (d, dl) ->
-            cell(t, d, true); var dq=0
-            for(i in 0 until 8) {
-                val b = brs[i]
-                val bl = dl.filter { if(b=="Other") !brs.contains(it.brand) && it.brand!="Other" && it.brand!="TOTAL" else it.brand==b }
-                val q = bl.sumOf { it.quantity }; val v = bl.sumOf { it.totalValue }
-                gq[i]+=q; dq+=q
-                cell(t, if(q>0) "$q (${(v/1000).toInt()}k)" else "-")
+            cell(t, d, true) // Date
+            var dayTotalQty = 0
+            var daySamsungQty = 0
+            val dayLogs = ArrayList<String>()
+
+            // Brand Columns
+            for (i in 0 until 8) {
+                val bName = brands[i]
+                val bSales = dl.filter { if(bName=="Other") !brands.contains(it.brand) && it.brand!="Other" else it.brand == bName }
+                val q = bSales.sumOf { it.quantity }
+                val v = bSales.sumOf { it.totalValue }
+
+                grandBrandQty[i] += q
+                dayTotalQty += q
+
+                if (bName == "Samsung") daySamsungQty = q
+
+                // Collect Logs: "A55(2)"
+                if(q > 0) {
+                    bSales.forEach { s -> dayLogs.add("${s.brand} ${s.model}") }
+                }
+
+                // Compact Cell: "3 (50k)"
+                cell(t, if (q > 0) "$q (${(v/1000).toInt()}k)" else "-")
             }
-            gq[8]+=dq; val dv = dl.sumOf { it.totalValue }
-            cell(t, "$dq (${(dv/1000).toInt()}k)", true)
+
+            // Day Totals
+            grandTotalQty += dayTotalQty
+            grandSamQty += daySamsungQty
+
+            // Total Column
+            val dayTotalVal = dl.sumOf { it.totalValue }
+            cell(t, "$dayTotalQty (${(dayTotalVal/1000).toInt()}k)", true)
+
+            // Samsung Share Column
+            val share = if (dayTotalQty > 0) (daySamsungQty.toDouble() / dayTotalQty * 100).toInt() else 0
+            cell(t, "$share%", true)
+
+            // Logs Column
+            val logString = if(dayLogs.isNotEmpty()) dayLogs.joinToString(", ") else "-"
+            cell(t, logString, false, true) // Align Left
         }
-        cell(t, "ALL TOTAL", true); for(i in 0 until 9) cell(t, "${gq[i]}", true)
+
+        // Footer (Totals)
+        cell(t, "TOTAL", true)
+        for(i in 0 until 8) cell(t, "${grandBrandQty[i]}", true)
+        cell(t, "$grandTotalQty", true)
+
+        // Grand Share
+        val grandShare = if (grandTotalQty > 0) (grandSamQty.toDouble() / grandTotalQty * 100).toInt() else 0
+        cell(t, "$grandShare%", true)
+
+        cell(t, "", false) // Empty Log Footer
+
         doc.add(t)
     }
 }
