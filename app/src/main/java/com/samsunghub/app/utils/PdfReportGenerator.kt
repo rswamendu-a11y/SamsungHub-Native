@@ -32,6 +32,7 @@ object PdfReportGenerator {
             val writer = PdfWriter(file)
             val pdf = PdfDocument(writer)
 
+            // Orientation
             if (type == ReportType.MATRIX_ONLY || type == ReportType.MASTER_REPORT) {
                 pdf.defaultPageSize = PageSize.A4.rotate()
             } else {
@@ -56,15 +57,16 @@ object PdfReportGenerator {
                 ReportType.MATRIX_ONLY -> mat(doc, list)
                 ReportType.PRICE_SEGMENT_ONLY -> seg(doc, list)
                 ReportType.DETAILED_ONLY -> {
+                    // This is the ONLY mode that shows the full log now
                     brd(doc, list); doc.add(Paragraph("\n"))
                     seg(doc, list); doc.add(Paragraph("\n"))
                     log(doc, list)
                 }
-                else -> { // MASTER
+                else -> { // MASTER REPORT (Concise)
                     mat(doc, list); doc.add(AreaBreak(AreaBreakType.NEXT_PAGE))
                     brd(doc, list); doc.add(Paragraph("\n"))
-                    seg(doc, list); doc.add(Paragraph("\n"))
-                    log(doc, list)
+                    seg(doc, list)
+                    // REMOVED: log(doc, list) -> To save paper space as requested
                 }
             }
 
@@ -76,11 +78,11 @@ object PdfReportGenerator {
     // --- DRAWING FUNCTIONS ---
 
     private fun head(t: Table, txt: String) {
-        t.addHeaderCell(Cell().add(Paragraph(txt).setBold().setFontSize(8f)).setBackgroundColor(blue).setFontColor(white).setTextAlignment(TextAlignment.CENTER))
+        t.addHeaderCell(Cell().add(Paragraph(txt).setBold().setFontSize(9f)).setBackgroundColor(blue).setFontColor(white).setTextAlignment(TextAlignment.CENTER))
     }
 
     private fun cell(t: Table, txt: String, isBold: Boolean = false, alignLeft: Boolean = false) {
-        val p = Paragraph(txt).setFontSize(7f)
+        val p = Paragraph(txt).setFontSize(8f)
         if (!alignLeft) p.setTextAlignment(TextAlignment.CENTER)
         if (isBold) p.setBold()
         t.addCell(Cell().add(p))
@@ -122,7 +124,7 @@ object PdfReportGenerator {
     }
 
     private fun log(doc: Document, list: List<SaleEntry>) {
-        doc.add(Paragraph("Detailed Transaction Log").setBold().setFontSize(12f))
+        doc.add(Paragraph("Transaction Log").setBold().setFontSize(12f))
         val t = Table(UnitValue.createPercentArray(floatArrayOf(1.5f,1.5f,2f,1.5f,1.5f,0.8f,1.5f))).useAllAvailableWidth()
         listOf("Date","Brand","Model","Variant","Price","Qty","Total").forEach { head(t, it) }
         list.sortedByDescending { it.timestamp }.forEach { s ->
@@ -134,79 +136,54 @@ object PdfReportGenerator {
 
     private fun mat(doc: Document, list: List<SaleEntry>) {
         doc.add(Paragraph("Matrix Overview").setBold().setFontSize(12f))
-
-        // 12 COLUMNS: Date(1.2) + 8 Brands(0.7) + Total(0.8) + Share(0.8) + Logs(3.0)
-        // This ensures it fits on Landscape
         val t = Table(UnitValue.createPercentArray(floatArrayOf(1.2f, 0.7f, 0.7f, 0.7f, 0.7f, 0.7f, 0.7f, 0.7f, 0.7f, 0.8f, 0.8f, 3f))).useAllAvailableWidth()
 
-        val brands = listOf("Samsung","Apple","Oppo","Vivo","Realme","Xiaomi","Moto","Other")
-
-        // Header Row
-        head(t, "Date")
-        brands.forEach { head(t, it) }
-        head(t, "Tot")
-        head(t, "Sam%") // New Column
-        head(t, "Logs") // New Column
+        val brands = listOf("Samsung","Apple","Oppo","Vivo","Realme","Xiaomi","Moto","Other","TOTAL")
+        head(t, "Date"); brands.forEach { head(t, it) }; head(t, "Tot"); head(t, "Sam%"); head(t, "Logs")
 
         val dates = list.groupBy { df.format(Date(it.timestamp)) }.toSortedMap()
-        val grandBrandQty = IntArray(8)
+        val gq = IntArray(9)
         var grandTotalQty = 0
         var grandSamQty = 0
 
         dates.forEach { (d, dl) ->
-            cell(t, d, true) // Date
-            var dayTotalQty = 0
-            var daySamsungQty = 0
+            cell(t, d, true)
+            var dq = 0
+            var dSam = 0
             val dayLogs = ArrayList<String>()
 
-            // Brand Columns
             for (i in 0 until 8) {
                 val bName = brands[i]
-                val bSales = dl.filter { if(bName=="Other") !brands.contains(it.brand) && it.brand!="Other" else it.brand == bName }
+                val bSales = dl.filter { if(bName=="Other") !brands.contains(it.brand) && it.brand!="Other" && it.brand!="TOTAL" else it.brand == bName }
                 val q = bSales.sumOf { it.quantity }
                 val v = bSales.sumOf { it.totalValue }
-
-                grandBrandQty[i] += q
-                dayTotalQty += q
-
-                if (bName == "Samsung") daySamsungQty = q
-
-                // Collect Logs: "A55(2)"
-                if(q > 0) {
-                    bSales.forEach { s -> dayLogs.add("${s.brand} ${s.model}") }
-                }
-
-                // Compact Cell: "3 (50k)"
+                gq[i] += q
+                dq += q
+                if(bName=="Samsung") dSam = q
+                if(q > 0) bSales.forEach { s -> dayLogs.add("${s.brand} ${s.model}") }
                 cell(t, if (q > 0) "$q (${(v/1000).toInt()}k)" else "-")
             }
+            gq[8] += dq
+            grandTotalQty += dq
+            grandSamQty += dSam
 
-            // Day Totals
-            grandTotalQty += dayTotalQty
-            grandSamQty += daySamsungQty
+            val dv = dl.sumOf { it.totalValue }
+            cell(t, "$dq (${(dv/1000).toInt()}k)", true)
 
-            // Total Column
-            val dayTotalVal = dl.sumOf { it.totalValue }
-            cell(t, "$dayTotalQty (${(dayTotalVal/1000).toInt()}k)", true)
-
-            // Samsung Share Column
-            val share = if (dayTotalQty > 0) (daySamsungQty.toDouble() / dayTotalQty * 100).toInt() else 0
+            val share = if (dq > 0) (dSam.toDouble() / dq * 100).toInt() else 0
             cell(t, "$share%", true)
 
-            // Logs Column
             val logString = if(dayLogs.isNotEmpty()) dayLogs.joinToString(", ") else "-"
-            cell(t, logString, false, true) // Align Left
+            cell(t, logString, false, true)
         }
 
-        // Footer (Totals)
         cell(t, "TOTAL", true)
-        for(i in 0 until 8) cell(t, "${grandBrandQty[i]}", true)
+        for(i in 0 until 8) cell(t, "${gq[i]}", true)
         cell(t, "$grandTotalQty", true)
 
-        // Grand Share
         val grandShare = if (grandTotalQty > 0) (grandSamQty.toDouble() / grandTotalQty * 100).toInt() else 0
         cell(t, "$grandShare%", true)
-
-        cell(t, "", false) // Empty Log Footer
+        cell(t, "", false)
 
         doc.add(t)
     }
