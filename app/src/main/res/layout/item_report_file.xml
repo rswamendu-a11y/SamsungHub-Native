@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="16dp"
+    android:gravity="center_vertical"
+    android:background="?attr/selectableItemBackground">
+
+    <ImageView
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@android:drawable/ic_menu_sort_by_size"
+        android:tint="@color/primaryBlue"
+        android:contentDescription="PDF Icon"/>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="16dp">
+
+        <TextView
+            android:id="@+id/tvFileName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sales_Report_Jan_2025.pdf"
+            android:textSize="16sp"
+            android:textColor="@color/textPrimary"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/tvDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Modified: Jan 12, 10:00 AM"
+            android:textSize="12sp"
+            android:textColor="@color/textSecondary"/>
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/btnShare"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@android:drawable/ic_menu_share"
+        android:tint="@color/textSecondary"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="4dp"/>
+
+</LinearLayout>
