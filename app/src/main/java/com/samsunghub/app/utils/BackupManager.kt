@@ -10,9 +10,12 @@ import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 object BackupManager {
     private const val HDR = "Date,Brand,Model,Variant,Price,Quantity,Segment"
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
     suspend fun writeListToCsv(ctx: Context, uri: Uri, list: List<SaleEntry>) {
         withContext(Dispatchers.IO) {
@@ -21,7 +24,9 @@ object BackupManager {
                     val w = OutputStreamWriter(os)
                     w.append(HDR).append("\n")
                     list.forEach { s ->
-                        w.append("${s.timestamp},${s.brand},${s.model},${s.variant},${s.unitPrice},${s.quantity},${s.segment}\n")
+                        // EXPORT AS READABLE DATE (YYYY-MM-DD)
+                        val dateStr = dateFormat.format(java.util.Date(s.timestamp))
+                        w.append("$dateStr,${s.brand},${s.model},${s.variant},${s.unitPrice},${s.quantity},${s.segment}\n")
                     }
                     w.flush()
                 }
@@ -48,10 +53,27 @@ object BackupManager {
                     data.forEach { row ->
                         val t = row.split(",")
                         if (t.size >= 6) {
-                            val p = t[4].toDoubleOrNull()?:0.0; val q = t[5].toIntOrNull()?:1
+                            // DATE PARSING FIX
+                            val dateRaw = t[0]
+                            val timestamp: Long = try {
+                                if (dateRaw.contains("-")) {
+                                    // It is a Date String (2026-01-07)
+                                    dateFormat.parse(dateRaw)?.time ?: System.currentTimeMillis()
+                                } else {
+                                    // It is a Raw Timestamp (Legacy)
+                                    dateRaw.toLong()
+                                }
+                            } catch (e: Exception) {
+                                System.currentTimeMillis() // Fallback
+                            }
+
+                            val p = t[4].toDoubleOrNull() ?: 0.0
+                            val q = t[5].toIntOrNull() ?: 1
                             val seg = com.samsunghub.app.data.SegmentCalculator.getSegment(p)
-                            val e = SaleEntry(0, t[0].toLongOrNull()?:System.currentTimeMillis(), t[1], t[2], t[3], p, q, p*q, seg)
-                            db.salesDao().insertSale(e); count++
+
+                            val e = SaleEntry(0, timestamp, t[1], t[2], t[3], p, q, p*q, seg)
+                            db.salesDao().insertSale(e)
+                            count++
                         }
                     }
                     withContext(Dispatchers.Main) { Toast.makeText(ctx, "Restored $count items", Toast.LENGTH_SHORT).show() }
